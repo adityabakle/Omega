@@ -8,7 +8,6 @@
   <packaging>jar</packaging>
 
   <name>dal</name>
-  <url>http://maven.apache.org</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -21,5 +20,15 @@
       <version>3.8.1</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+    	<groupId>org.apache.hbase</groupId>
+    	<artifactId>hbase</artifactId>
+    	<version>0.94.12</version>
+    </dependency>
+    <dependency>
+		<groupId>org.apache.hadoop</groupId>
+		<artifactId>hadoop-core</artifactId>
+		<version>1.2.1</version>
+	</dependency>
   </dependencies>
 </project>
