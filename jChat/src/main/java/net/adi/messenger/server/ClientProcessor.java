@@ -154,30 +154,31 @@ public class ClientProcessor implements Runnable
 			}
 			
 			strUserID = objTpb.getStrFromUser();
-			strPwd = EncodeDecode.decode(objTpb.getStrMsgBody());
+			strPwd = objTpb.getStrMsgBody();
 			MainFrame.outputToServerCansole(" Authenticating user - " + strUserID);
 			rdFile = new DataInputStream(new FileInputStream(MainFrame.getFileData()));
-			while(true) {
-	        	try {
-	        		if(strUserID.equals(EncodeDecode.decode(rdFile.readUTF()))) {
+			String line = null;
+			userStatus = 2;
+			while((line = rdFile.readUTF())!=null) {
+	        	
+	        		if(strUserID.equals(line)) {
 		        		userStatus = 1;
 		        		if(objTpb.getStrCommand().equals("$SIGNUP")){
 		        			break;
 		        		}
-		                if(strPwd.equals(EncodeDecode.decode(rdFile.readUTF()))) {
-		                	userStatus = 3;
-		                	break;
-		                }
-		                else {
-		                	userStatus = 2;
-		                	break;
-		                 }
-		        	}
-	        	} catch(EOFException objEOF){
-	    			userStatus = 0;
-	    			break;
-	    		}
+		        		
+		        		else {
+		        			String encUsrPwd = EncodeDecode.encodePassword(strPwd, strUserID);
+		        			line = rdFile.readUTF(); // read pwd from file.
+			        			if(encUsrPwd.equals(line)) {
+			        			userStatus = 3;
+			                	break;
+			                } 
+		        		}
+		        	} 
 	        }
+		} catch(EOFException objEOF){
+			userStatus = 0;
 		} catch(Exception objExp) {
 			MainFrame.outputToServerCansole(" Error Reading file - " + strUserID +" : " + objExp);
 			objExp.printStackTrace();
@@ -196,8 +197,8 @@ public class ClientProcessor implements Runnable
 	    	case 0:
 	    		try {
 		    		DataOutputStream wrtFile = new DataOutputStream(new FileOutputStream(MainFrame.getFileData(),true));
-		    		wrtFile.writeUTF(EncodeDecode.encode(strUserID));
-		    		wrtFile.writeUTF(objTpb.getStrMsgBody());
+		    		wrtFile.writeUTF(strUserID);
+		    		wrtFile.writeUTF(EncodeDecode.encodePassword(objTpb.getStrMsgBody(),strUserID));
 		    		wrtFile.close();
 		    		MainFrame.outputToServerCansole("New guest signed up. Name : " + strUserID);
 		    		objTpb.setStrCommand("$SIGNUP_OK");

@@ -89,7 +89,7 @@ public class LoginFrame extends JFrame implements ActionListener
 		{
 			try {
 				DialUpFrame.objCIB.sendCmd(new TransportPacketBean("CMD","$LOGIN",null,
-						txtUserName.getText(),EncodeDecode.encode(txtPassword.getText()),"$LOGIN"));
+						txtUserName.getText(),txtPassword.getText(),"$LOGIN"));
 				strServerResp = (TransportPacketBean)DialUpFrame.objCIB.receiveCmd();
 				
 				if("$LOGIN_OK".equals(strServerResp.getStrCommand())) {

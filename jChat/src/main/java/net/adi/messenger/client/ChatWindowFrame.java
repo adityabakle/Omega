@@ -29,7 +29,7 @@ public class ChatWindowFrame extends JFrame implements ActionListener,TextListen
 		super(p_strUsr+" <=> "+p_strFriend);
 		setSize(400,300);
 		setLayout(null);
-		setResizable(false);
+		setResizable(true);
 		strUserName = p_strUsr;
 		strFriend = p_strFriend;
 		jTxtMsg=new JTextField("");

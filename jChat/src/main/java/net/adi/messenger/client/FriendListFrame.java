@@ -33,6 +33,7 @@ public class FriendListFrame extends JFrame implements ActionListener, MouseList
 	JScrollPane listUserScroll;
 	ServerCmdListner thSCL;
 	public static Vector<Object> vUserList;
+	public static MessageReceiver myth = null;
 	public FriendListFrame(String p_strUsrName)
 	{
 		super("@Di Chatting Client");
@@ -80,7 +81,7 @@ public class FriendListFrame extends JFrame implements ActionListener, MouseList
 		
 		DialUpFrame.objFrndList = this;
 		thSCL = new ServerCmdListner();
-		new MessageReceiver();
+		myth = new MessageReceiver();
 	}
 
 	public void actionPerformed(ActionEvent AE)
@@ -149,9 +150,13 @@ public class FriendListFrame extends JFrame implements ActionListener, MouseList
 	
 	public void logout() {
 		try {
-			DialUpFrame.objCIB.close(true);
 			DialUpFrame.objCIB.sendExitPacket("C");
+			myth.stopMe();
+			Thread.sleep(750);
+			DialUpFrame.objCIB.close(true);
 		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 		DialUpFrame.objFrndList.dispose();

@@ -15,7 +15,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 
-import net.adi.messenger.common.EncodeDecode;
 import net.adi.messenger.common.TransportPacketBean;
 
 
@@ -69,7 +68,7 @@ public class UserSignUpFrame extends JFrame implements ActionListener
 			if(txtConfPwd.getText().equals(txtPassword.getText())) {
 				try {
 					DialUpFrame.objCIB.sendCmd(new TransportPacketBean("CMD","$SIGNUP",null,
-							txtUserName.getText(),EncodeDecode.encode(txtPassword.getText()),"$SIGNUP"));
+							txtUserName.getText(),txtPassword.getText(),"$SIGNUP"));
 					TransportPacketBean objTpb = (TransportPacketBean)DialUpFrame.objCIB.receiveCmd();
 					if("$SIGNUP_OK".equals(objTpb.getStrCommand())) {
 						JOptionPane.showMessageDialog(this,"You are now registered. \n Pleae login with ur new UserName and Password.",
