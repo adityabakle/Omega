@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+    PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-config.dtd"> 
+<configuration>
+  <properties resource="OracleConfig.properties" />
+
+  <typeAliases>
+    <typeAlias alias="UserMasterDTO" type="com.cellmania.cmreports.db.masters.UserMasterDTO"/>
+    <typeAlias alias="UserParams" type="com.cellmania.cmreports.db.masters.UserParams"/>
+    <typeAlias alias="RoleDTO" type="com.cellmania.cmreports.db.masters.RoleDTO"/>
+    <typeAlias alias="UserCarrierXrefDTO" type="com.cellmania.cmreports.db.masters.UserCarrierXrefDTO"/>
+    
+    <typeAlias alias="CarrierMasterDTO" type="com.cellmania.cmreports.db.masters.CarrierMasterDTO"/>
+    <typeAlias alias="CarrierParams" type="com.cellmania.cmreports.db.masters.CarrierParams"/>
+    <typeAlias alias="CarrierReportXrefDTO" type="com.cellmania.cmreports.db.masters.CarrierReportXrefDTO"/>
+    
+    
+    <typeAlias alias="ReportMasterDTO" type="com.cellmania.cmreports.db.masters.ReportMasterDTO"/>
+    <typeAlias alias="ReportParams" type="com.cellmania.cmreports.db.masters.ReportParams"/>
+    <typeAlias alias="FileExtensionDTO" type="com.cellmania.cmreports.db.masters.FileExtensionDTO"/>
+    
+    <typeAlias alias="ServerSettingsDTO" type="com.cellmania.cmreports.db.settings.ServerSettingsDTO"/>
+    <typeAlias alias="ServerSettingParams" type="com.cellmania.cmreports.db.settings.ServerSettingParams"/>
+    
+    <typeAlias alias="ExecutionLogDTO" type="com.cellmania.cmreports.db.request.ExecutionLogDTO"/>
+    <typeAlias alias="FrequencyDTO" type="com.cellmania.cmreports.db.request.FrequencyDTO"/>
+    <typeAlias alias="MailDTO" type="com.cellmania.cmreports.db.request.MailDTO"/>
+    <typeAlias alias="RequestDTO" type="com.cellmania.cmreports.db.request.RequestDTO"/>
+    <typeAlias alias="RequestParams" type="com.cellmania.cmreports.db.request.RequestParams"/>
+    
+  </typeAliases>
+  
+  <typeHandlers>
+    <typeHandler javaType="java.lang.Boolean" jdbcType="VARCHAR" handler="com.cellmania.cmreports.db.handlers.BooleanTypeHandler"/>
+  </typeHandlers>
+  
+  <environments default="development">
+    <environment id="production">
+      <transactionManager type="JDBC"/>
+     <dataSource type="POOLED">
+        <property name="driver" value="${driver}"/>
+        <property name="url" value="${url}"/>
+        <property name="username" value="${username}"/>
+        <property name="password" value="${password}"/>
+        <property name="poolMaximumActiveConnections" value="30"/>
+        <property name="poolMaximumIdleConnections" value="50"/>
+      </dataSource>
+    </environment>
+    <environment id="development">
+      <transactionManager type="JDBC"/>
+      <dataSource type="POOLED">
+        <property name="driver" value="${driver}"/>
+        <property name="url" value="${url}"/>
+        <property name="username" value="${username}"/>
+        <property name="password" value="${password}"/>
+        <property name="poolMaximumActiveConnections" value="30"/>
+        <property name="poolMaximumIdleConnections" value="50"/>
+      </dataSource>
+    </environment>
+  </environments>
+  
+  <mappers>
+    <mapper resource="com/cellmania/cmreports/db/masters/UserMaster.xml"/>
+    <mapper resource="com/cellmania/cmreports/db/masters/CarrierMaster.xml"/>
+    <mapper resource="com/cellmania/cmreports/db/masters/ReportMaster.xml"/>
+    <mapper resource="com/cellmania/cmreports/db/settings/ServerSettings.xml"/>
+    <mapper resource="com/cellmania/cmreports/db/request/RequestMaster.xml"/>
+  </mappers>
+  
+</configuration>
+
+
+    

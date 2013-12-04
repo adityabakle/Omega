@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+
+<!-- - Application context definition for "springapp" DispatcherServlet. -->
+
+<!-- <beans default-autowire="autodetect"> -->
+<beans default-autowire="byName">
+	<bean id="cmInterceptor" class="com.cellmania.cmreports.web.interceptor.CMInterceptor" />
+	<bean id="cmDBService" class="com.cellmania.cmreports.web.util.CMDBService" />
+
+	<bean id="DbConnectionAction" class="com.cellmania.cmreports.web.action.DbConnectionAction"
+		singleton="false">
+		<property name="cmrDB" ref="cmDBService" />
+	</bean>
+
+	<bean id="LoginAction" class="com.cellmania.cmreports.web.action.LoginAction"
+		singleton="false">
+		<property name="cmrDB" ref="cmDBService" />
+	</bean>
+
+	<bean id="LogoutAction" class="com.cellmania.cmreports.web.action.LogoutAction"
+		singleton="false">
+		<property name="cmrDB" ref="cmDBService" />
+	</bean>
+
+	<bean id="ReportAction" class="com.cellmania.cmreports.web.action.ReportAction"
+		singleton="false">
+		<property name="cmrDB" ref="cmDBService" />
+	</bean>
+	<bean id="MyAction" class="com.cellmania.cmreports.web.action.MyAction"
+		singleton="false">
+		<property name="cmrDB" ref="cmDBService" />
+	</bean>
+
+	<bean id="MyActionGrid" class="com.cellmania.cmreports.web.action.MyActionGrid"
+		singleton="false">
+		<property name="cmrDB" ref="cmDBService" />
+	</bean>
+
+	<bean id="JsonDropDownAction" class="com.cellmania.cmreports.web.action.JsonDropDownAction"
+		singleton="false">
+		<property name="cmrDB" ref="cmDBService" />
+	</bean>
+
+	<bean id="SettingAction" class="com.cellmania.cmreports.web.action.SettingAction"
+		singleton="false">
+		<property name="cmrDB" ref="cmDBService" />
+	</bean>
+
+	<bean id="SqlExecutorAction" class="com.cellmania.cmreports.web.action.SqlExecutorAction"
+		singleton="false">
+		<property name="cmrDB" ref="cmDBService" />
+	</bean>
+
+	<bean id="DownloadFileAction" class="com.cellmania.cmreports.web.action.DownloadFileAction"
+		singleton="false">
+		<property name="cmrDB" ref="cmDBService" />
+	</bean>
+
+	<!-- <bean id="ReportAction" class="com.cellmania.web.action.ReportAction" 
+		singleton="false" destroy-method="destroy"/> <bean id="MastersAction" class="com.cellmania.web.action.MastersAction" 
+		singleton="false"/> <bean id="QueryExeAction" class="com.cellmania.web.action.QueryExeAction" 
+		singleton="false"/> -->
+</beans>

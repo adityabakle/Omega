@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="NextelPeReports" >
+  <resultMap id="RM_InternalReport" type="ReportDataDTO">
+     <result property="orderDate" column="ORDERDATE"/>
+     <result property="itemName" column="ITEM_NAME"/>
+     <result property="companyName" column="DEVELOPER_NAME"/>
+     <result property="launchDate" column="LAUNCHDATE"/>
+     <result property="subscription" column="SUBSCRIPTIONFLAG"/>
+     <result property="noOfOrders" column="NUMBER_OF_ORDERS"/>
+     <result property="sellPrice" column="SELL_PRICE"/>
+     <result property="totalSellPrice" column="TOTALSALES"/>
+  </resultMap>	
+  <select id="selSimpleRevShareReportData" parameterType="RequestDTO" resultMap="RM_InternalReport">
+  	SELECT TO_CHAR(A.ORDER_DATE, 'MON-YYYY') ORDERDATE,
+       A.ITEM_NAME,
+       A.DEVELOPER_NAME,
+       TO_CHAR(MAX(B.LIVE_DATE),'DD-MM-YYYY')LAUNCHDATE,
+       DECODE(NVL(A.SUBSCRIPTION_FLAG, 'false'),
+              'false',
+              'No',
+              'true',
+              'Yes') SUBSCRIPTIONFLAG,
+       COUNT(*) NUMBER_OF_ORDERS,
+       A.SELL_PRICE,
+       SUM(A.SELL_PRICE) TOTALSALES
+  FROM MF_ORDER A, MF_ITEM B
+ WHERE A.ORDER_TYPE IS NULL
+   AND A.ORDER_DATE BETWEEN TO_DATE(#{startDate, typeHandler=com.cellmania.cmreports.db.handlers.DateTypeHandler} || ' 00:00:00', 'DD-MON-YYYY hh24:mi:ss') AND
+       TO_DATE(#{endDate, typeHandler=com.cellmania.cmreports.db.handlers.DateTypeHandler} || '23:59:59', 'DD-MON-YYYY hh24:mi:ss')
+   AND A.COMPANY_NAME = 'Cellmania'
+   AND A.ITEM_ID = B.ITEM_ID(+)
+ GROUP BY A.DEVELOPER_NAME,
+          A.ITEM_NAME,
+          A.SELL_PRICE,
+          TO_CHAR(A.ORDER_DATE, 'MON-YYYY'),
+          NVL(A.SUBSCRIPTION_FLAG, 'false')
+ ORDER BY DEVELOPER_NAME,SUBSCRIPTIONFLAG
+  </select>
+ </mapper>

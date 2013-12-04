@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ServerSettings">
+	
+	
+	
+ 	<select id="getDBTimeStamp" resultType="java.util.Date">
+ 		SELECT SYSTIMESTAMP FROM DUAL
+ 	</select>
+ 	
+ 	<select id="getDBTimeZone" resultType="String">
+ 		SELECT 'GMT' || EXTRACT(TIMEZONE_HOUR FROM SYSTIMESTAMP) || ':' ||
+       			TRIM(TO_CHAR(EXTRACT(TIMEZONE_MINUTE FROM SYSTIMESTAMP), '00'))
+  		  FROM DUAL
+ 	</select>
+ 	
+ 	<select id="getServerSettingValueByKey" resultType="String" parameterType="String">
+ 		SELECT VALUE FROM SERVERSETTINGS
+ 		<where>
+ 			KEY = #{key, jdbcType=VARCHAR}
+ 			AND ENABLED = 1
+ 		</where>
+ 	</select>
+ 	
+ 	<resultMap id="rm_ServerSettingsDTO" type="ServerSettingsDTO">
+ 		<id property="id" javaType="Long" column="ID"/>
+ 		<result property="key" javaType="String" column="KEY"/>
+ 		<result property="value" javaType="String" column="VALUE"/>
+ 		<result property="enabled" column="ENABLED" typeHandler="com.cellmania.cmreports.db.handlers.BooleanTypeHandler"/>
+ 		<result property="updatedBy" javaType="Long" column="UPDATEDBY"/>
+ 		<result property="updatedByName" javaType="String" column="UPDATEDBYNAME"/>
+ 		<result property="createdDate" javaType="java.util.Date" column="CREATEDDATE"/>
+ 		<result property="modifiedDate" javaType="java.util.Date" column="MODIFIEDDATE"/>
+ 	</resultMap>
+ 	<select id="getServerSettings" parameterType="ServerSettingParams" resultMap="rm_ServerSettingsDTO">
+ 		SELECT S.ID, S.KEY, S.VALUE, S.ENABLED, S.UPDATEDBY, U.NAME UPDATEDBYNAME, S.CREATEDDATE, S.MODIFIEDDATE
+ 		  FROM SERVERSETTINGS S, USERMASTER U
+ 		 <where>
+ 		 	S.UPDATEDBY = U.USERID
+ 		 	<if test="id != null">
+ 		 		AND S.ID = #{id, jdbcType=NUMERIC}
+ 		 	</if>
+ 		 	<if test="key != null">
+ 		 		AND S.KEY = #{key, jdbcType=VARCHAR}
+ 		 	</if>
+ 		 	<if test="enabled !=null">
+ 		 		AND S.ENABLED = #{enabled, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler} 
+ 		 	</if>
+ 		 </where>
+ 		 ORDER BY 
+ 		 <choose>
+ 		 	<when test="sortCol == 0">
+ 		 		S.ID
+ 		 	</when>
+ 		 	<when test="sortCol == 1">
+ 		 		S.ENABLED
+ 		 	</when>
+ 		 	<when test="sortCol == 3">
+ 		 		S.KEY
+ 		 	</when>
+ 		 	<when test="sortCol == 99">
+ 		 		S.CREATEDDATE
+ 		 	</when>
+ 		 	<when test="sortCol == 100">
+ 		 		S.MODIFIEDDATE
+ 		 	</when>
+ 		 	<otherwise>
+ 		 		S.ID
+ 		 	</otherwise>
+ 		 </choose> 
+ 		 ${sortOrder}
+ 	</select>
+ 	
+ 	<select id="getServerSettingsCount" resultType="long" parameterType="ServerSettingParams">
+ 		SELECT count (1)
+ 		  FROM SERVERSETTINGS S
+ 		 <where>
+ 		 	<if test="key != null">
+ 		 		S.KEY = #{key, jdbcType=VARCHAR}
+ 		 	</if>
+ 		 	<if test="id != null">
+ 		 		AND S.ID = #{id, jdbcType=NUMERIC}
+ 		 	</if>
+ 		 	<if test="enabled !=null">
+ 		 		AND S.ENABLED = #{enabled, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler} 
+ 		 	</if>
+ 		 </where>
+ 	</select>
+ 	
+ 	<select id="checkDuplicateKey" resultType="long" parameterType="ServerSettingParams">
+ 		SELECT count (1)
+ 		  FROM SERVERSETTINGS S
+ 		 <where>
+ 		 	<if test="key != null">
+ 		 		S.KEY = #{key, jdbcType=VARCHAR}
+ 		 	</if>
+ 		 	<if test="id != null">
+ 		 		AND S.ID <![CDATA[<>]]> #{id, jdbcType=NUMERIC}
+ 		 	</if>
+ 		 </where>
+ 	</select>
+ 	
+ 	<insert id="addServerSettings" parameterType="ServerSettingsDTO">
+ 		INSERT INTO SERVERSETTINGS (KEY, VALUE, ENABLED, UPDATEDBY)
+ 		VALUES (#{key, jdbcType=VARCHAR},
+ 			    #{value, jdbcType=VARCHAR}, #{enabled, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler},
+ 			    #{updatedBy, jdbcType=NUMERIC}) 		
+ 	</insert>
+ 	
+ 	<update id="updateServerSettings" parameterType="ServerSettingsDTO">
+ 		UPDATE SERVERSETTINGS 
+ 		   SET KEY = #{key, jdbcType=VARCHAR},
+ 		   	   VALUE = #{value,jdbcType=VARCHAR},
+ 		   	   ENABLED = #{enabled, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler},
+ 		   	   UPDATEDBY = #{updatedBy, jdbcType=NUMERIC}
+ 		 WHERE ID = #{id, jdbcType=NUMERIC}
+ 	</update>
+ 	
+ 	<delete id="deleteServerSettings" parameterType="long">
+ 		DELETE FROM SERVERSETTINGS WHERE ID = #{id, jdbcType=NUMERIC}
+ 	</delete>
+ 	
+</mapper>

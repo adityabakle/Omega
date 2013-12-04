@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="UserMaster">
+
+<resultMap type="UserMasterDTO" id="rmUserDetails">
+	<id property="userId" javaType="Long" column="USERID"/>
+	<result property="userName" javaType="String" column="USERNAME"/>
+	<result property="password" javaType="String" column="PASSWORD"/>
+	<result property="name" javaType="String" column="NAME"/>
+	<result property="email" javaType="String" column="EMAIL"/>
+	<result property="roleId" javaType="Long" column="ROLEID"/>
+	<result property="createdDate" javaType="java.util.Date" column="CREATEDDATE"/>
+	<result property="modifiedDate" javaType="java.util.Date" column="MODIFIEDDATE"/>
+	<result property="updatedBy" javaType="Long" column="UPDATEDBY"/>
+	<result property="updatedByName" javaType="String" column="UPDATEDBYNAME"/>
+	<result property="passwordExpired" column="PASSWORDEXPIRED" typeHandler="com.cellmania.cmreports.db.handlers.BooleanTypeHandler"/>
+	<result property="passwordLastUpdated" javaType="java.util.Date" column="PASSWORDLASTUPDATED" />
+	<result property="loginAttempts" javaType="Long" column="LOGINATTEMPTS"/>
+	<result property="accountLocked" column="ACCOUNTLOCKED" typeHandler="com.cellmania.cmreports.db.handlers.BooleanTypeHandler"/>
+	<result property="enabled" column="ENABLED" typeHandler="com.cellmania.cmreports.db.handlers.BooleanTypeHandler"/>
+	<result property="passwordRecoveryKey" javaType="String" column="PASSWORDRECOVERYKEY"/>
+	<result property="lastLoginDate" javaType="java.util.Date" column="LASTLOGINDATE"/>
+	<result property="loggedIn" column="LOGGEDIN" typeHandler="com.cellmania.cmreports.db.handlers.BooleanTypeHandler"/>
+	<result property="signature" column="SIGNATURE" javaType="String"/>
+	<association property="role" column="ROLEID" 	
+			select="UserMaster.getRole" javaType="RoleDTO">
+	</association>
+	<collection property="userCarrierXref" column="USERID" javaType="ArrayList" ofType="UserCarrierXrefDTO" select="getMappedCarriers"/>
+</resultMap>
+ <select id="getUserDetails" parameterType="UserParams" resultMap="rmUserDetails" flushCache="true">
+ 	SELECT U.USERID, U.USERNAME, U.PASSWORD, U.NAME,
+ 		   U.EMAIL, U.ROLEID, U.CREATEDDATE, U.MODIFIEDDATE,
+ 		   U.UPDATEDBY, UB.NAME UPDATEDBYNAME, NVL(U.PASSWORDEXPIRED,0) PASSWORDEXPIRED,
+ 		   U.PASSWORDLASTUPDATED,
+ 		   U.LOGINATTEMPTS, U.ACCOUNTLOCKED, U.ENABLED, 
+ 		   U.PASSWORDRECOVERYKEY, U.LASTLOGINDATE, U.LOGGEDIN,U.SIGNATURE
+ 	  FROM USERMASTER U, USERMASTER UB
+ 	<where>
+ 		U.UPDATEDBY = UB.USERID (+)
+ 		<if test="userId!=null and userId &gt; 0">
+ 			AND U.USERID = #{userId, jdbcType=NUMERIC}
+ 		</if>
+ 		<if test="email!=null">
+ 			AND U.EMAIL = #{email, jdbcType=VARCHAR}
+ 		</if>
+ 		<if test="userName!=null">
+ 			AND U.USERNAME = #{userName, jdbcType=VARCHAR}
+ 		</if>
+ 		<if test="passwordRecoveryKey!=null">
+ 			AND U.PASSWORDRECOVERYKEY = #{passwordRecoveryKey, jdbcType=VARCHAR}
+ 		</if>
+ 	</where>
+ 	ORDER BY
+ 	<choose>
+ 		<when test="sortCol==2">U.USERNAME</when>
+ 		<when test="sortCol==3">U.NAME</when>
+ 		<when test="sortCol==4">U.EMAIL</when>
+ 		<when test="sortCol==5">U.LASTLOGINDATE</when>
+ 		<otherwise>U.USERID</otherwise>
+ 	</choose> 
+ 	${sortOrder}
+ 	
+ </select>
+ 
+ <select id="getUserDetailsById" parameterType="Long" resultType="UserMasterDTO" flushCache="true">
+ 	SELECT U.USERID, U.USERNAME, U.NAME,
+ 		   U.EMAIL, U.ROLEID, U.SIGNATURE
+ 	  FROM USERMASTER U
+ 	<where>
+ 		U.USERID = #{userId, jdbcType=NUMERIC}
+ 	</where>
+ </select>
+ 
+  <select id="getMappedCarriers" parameterType="Long" resultType="UserCarrierXrefDTO">
+ 	SELECT USERID, CARRIERID 
+ 	  FROM USERCARRIERXREF
+ 	 WHERE USERID = #{userId, jdbcType=NUMERIC}
+ </select>
+ 
+ <select id="getRole" parameterType="Long" resultType="RoleDTO">
+ 	SELECT ROLEID, NAME, DESCRIPTION
+ 	  FROM ROLES
+ 	 WHERE ROLEID = #{roleId, jdbcType=NUMERIC}
+ </select>
+ 
+ <select id="getRoles" resultType="RoleDTO">
+ 	SELECT ROLEID, NAME, DESCRIPTION
+ 	  FROM ROLES
+ 	 WHERE ENABLED = 1
+ 	 ORDER BY NAME
+ </select>
+ 
+ <select id="checkDuplicateUser" resultType="long" parameterType="UserParams">
+ 		SELECT count (1)
+ 		  FROM USERMASTER U
+ 		 <where>
+ 		 	<if test="userName != null">
+ 		 		UPPER(U.USERNAME) = UPPER(#{userName, jdbcType=VARCHAR})
+ 		 	</if>
+ 		 	<if test="userId != null">
+ 		 		AND U.USERID <![CDATA[<>]]> #{userId, jdbcType=NUMERIC}
+ 		 	</if>
+ 		 </where>
+ 	</select>
+ 	
+ <select id="generateUserId" resultType="Long" flushCache="true">
+ 	SELECT USERMASTER_PK_SEQ.NEXTVAL FROM DUAL
+ </select>
+ 
+ <insert id="addUser" parameterType="UserMasterDTO">
+ 	INSERT INTO USERMASTER (USERID,USERNAME,PASSWORD,NAME, EMAIL,ROLEID,UPDATEDBY,ENABLED,ACCOUNTLOCKED,SIGNATURE,PASSWORDRECOVERYKEY,PASSWORDEXPIRED) values
+ 	(#{userId, jdbcType=NUMERIC},#{userName, jdbcType=VARCHAR},#{password, jdbcType=VARCHAR},#{name, jdbcType=VARCHAR},
+ 	 #{email, jdbcType=VARCHAR},#{roleId, jdbcType=NUMERIC},#{updatedBy, jdbcType=NUMERIC},
+ 	 #{enabled, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler},
+ 	 #{accountLocked, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler},
+ 	 #{signature, jdbcType=VARCHAR}, #{passwordRecoveryKey, jdbcType=VARCHAR}, 1) 
+ </insert>
+ 
+ <update id="updateUser" parameterType="UserMasterDTO">
+ 	UPDATE USERMASTER SET
+ 	NAME = #{name, jdbcType=VARCHAR},
+ 	EMAIL = #{email, jdbcType=VARCHAR},
+ 	ROLEID = #{roleId, jdbcType=NUMERIC},
+ 	ACCOUNTLOCKED = #{accountLocked, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler},
+ 	SIGNATURE = #{signature, jdbcType=VARCHAR},
+ 	ENABLED = #{enabled, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler},
+ 	UPDATEDBY = #{updatedBy, jdbcType=NUMERIC}
+ 	<where>
+ 		USERID = #{userId, jdbcType=NUMERIC}
+ 	</where>
+ </update>
+ 
+  <insert id="insertUserCarrierMapping" parameterType="UserCarrierXrefDTO">
+ 	INSERT INTO USERCARRIERXREF
+ 	VALUES (#{userId jdbcType=NUMERIC},#{carrierId, jdbcType=NUMERIC})
+ </insert>
+ 
+ 
+ <delete id="deleteUserCarrierMapping" parameterType="Long">
+ 	DELETE FROM USERCARRIERXREF WHERE USERID = #{userId jdbcType=NUMERIC}
+ </delete>
+ 
+ <update id="markUserLoggedIn" parameterType="Long">
+ 	UPDATE USERMASTER SET 
+ 		LASTLOGINDATE = SYSTIMESTAMP,
+ 		LOGGEDIN = 1,
+ 		LOGINATTEMPTS = 0
+ 	<where>
+ 		USERID = #{userId}	
+ 	</where>
+ </update>
+ 
+ <update id="markUserLogout" parameterType="Long">
+ 	UPDATE USERMASTER SET 
+ 		LOGGEDIN = 0
+ 	<where>
+ 		USERID = #{userId}	
+ 	</where>
+ </update>
+ 
+  <update id="logoutAllUsers" >
+ 	UPDATE USERMASTER SET 
+ 		LOGGEDIN = 0
+ </update>
+ 
+ <update id="lockUserAccount" parameterType="Long">
+ 	UPDATE USERMASTER SET 
+ 		ACCOUNTLOCKED = 1
+ 	<where>
+ 		USERID = #{userId}	
+ 	</where>
+ </update>
+ 
+ <update id="updateLoginAttemptsCount" parameterType="Long">
+ 	UPDATE USERMASTER SET 
+ 		LOGINATTEMPTS = LOGINATTEMPTS + 1
+ 	<where>
+ 		USERID = #{userId}	
+ 	</where>
+ </update>
+ 
+ <update id="updatePasswordRecoveryKey" parameterType="UserMasterDTO">
+ 	UPDATE USERMASTER SET 
+ 		PASSWORDRECOVERYKEY = #{passwordRecoveryKey, jdbcType=VARCHAR}
+ 	<where>
+ 		USERID = #{userId}	
+ 	</where>
+ </update>
+ 
+ <update id="resetPassword" parameterType="UserMasterDTO">
+ 	UPDATE USERMASTER SET 
+ 		PASSWORDRECOVERYKEY = NULL,
+ 		ACCOUNTLOCKED = 0,
+ 		PASSWORD = #{password, jdbcType=VARCHAR},
+ 		LOGINATTEMPTS = 0,
+ 		PASSWORDEXPIRED = 0,
+ 		PASSWORDLASTUPDATED = SYSTIMESTAMP
+ 	<where>
+ 		USERID = #{userId}	
+ 	</where>
+ </update>
+ 
+</mapper>

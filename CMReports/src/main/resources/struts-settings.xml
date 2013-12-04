@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE struts PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+    "http://struts.apache.org/dtds/struts-2.0.dtd">
+
+<struts>
+	<package name="settings" extends="home" namespace="/settings">
+	  	<action name="home" method="home" class="SettingAction">
+			<result name="success" type="tiles">settingsTab</result>
+		</action>
+		
+		<action name="st_*" method="{1}" class="SettingAction">
+			<result name="userList">/WEB-INF/jsp/settings/userList.jsp</result>
+			<result name="userDetails">/WEB-INF/jsp/settings/userDetails.jsp</result>
+			<result name="carrierList">/WEB-INF/jsp/settings/carrierList.jsp</result>
+			<result name="carrierDetails">/WEB-INF/jsp/settings/carrierDetails.jsp</result>
+			<result name="reportList">/WEB-INF/jsp/settings/reportList.jsp</result>
+			<result name="reportDetails">/WEB-INF/jsp/settings/reportDetails.jsp</result>
+			<result name="serverSetList">/WEB-INF/jsp/settings/serverSetList.jsp</result>
+			<result name="serverSetDetails">/WEB-INF/jsp/settings/serverSetDetails.jsp</result>
+			<result name="schedulerDetails">/WEB-INF/jsp/settings/schedulerDetails.jsp</result>
+			<result name="staticValues">/WEB-INF/jsp/settings/staticValues.jsp</result>
+			<result name="success" type="tiles">settingsTab</result>
+		</action>
+		<action name="dbConCheck" class="DbConnectionAction">
+			<result name="success">/WEB-INF/jsp/settings/connectionStatus.jsp</result>
+		</action>
+	</package>
+</struts>

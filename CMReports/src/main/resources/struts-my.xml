@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE struts PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+    "http://struts.apache.org/dtds/struts-2.0.dtd">
+
+<struts>
+	<package name="my" extends="home" namespace="/my">
+	  	<action name="reports" method="reports" class="MyAction">
+			<result name="success" type="tiles">myReports</result>
+		</action>
+		<action name="ajaxMyReports" method="ajaxMyReports" class="MyAction">
+			<result name="success">/WEB-INF/jsp/my/reportList.jsp</result>
+		</action>
+		
+		<action name="dashboard" method="dashboard" class="MyAction">
+			
+			<result name="success" type="tiles">dashboardPage</result>
+		</action>
+		
+		<action name="jobs" method="jobsTab" class="MyAction">
+			<result name="success" type="tiles">jobTabs</result>
+		</action>
+		
+		<action name="my_*" method="{1}" class="MyAction">
+			<result name="jobList">/WEB-INF/jsp/my/jobList.jsp</result>
+		</action>
+		
+		<action name="ajaxJobs" method="ajaxJobs" class="MyAction">
+			<result name="success">/WEB-INF/jsp/my/jobList.jsp</result>
+		</action>
+		
+		<action name="profile" method="profile" class="MyAction">
+			<result name="success" type="tiles">myProfilePage</result>
+		</action>
+		
+		<action name="unschedule" method="unschedule" class="MyAction">
+			<result name="jobList">/WEB-INF/jsp/my/jobList.jsp</result>
+		</action>
+		
+		<action name="chnagePassword" method="chnagePassword" class="MyAction">
+			<result name="success">/WEB-INF/jsp/my/changePassword.jsp</result>
+		</action>
+		
+		<action name="changeMyPassword" method="changeMyPassword" class="MyAction">
+			<result name="success">/WEB-INF/jsp/my/changePassword.jsp</result>
+		</action>
+		
+		<action name="jsonGrid_*" method="{1}" class="MyActionGrid">
+		</action>
+	</package>
+</struts>

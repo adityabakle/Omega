@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE struts PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+    "http://struts.apache.org/dtds/struts-2.0.dtd">
+
+<struts>
+	<package name="report" extends="home" namespace="/report">
+	  	<action name="home" method="home" class="ReportAction">
+			<result name="success" type="tiles">newReport</result>
+		</action>
+		
+		<action name="newReport" method="newReport" class="ReportAction">
+			<result name="success">/WEB-INF/jsp/reports/newReportResult.jsp</result>
+		</action>
+		
+		<action name="details" method="details" class="ReportAction">
+			<result name="success">/WEB-INF/jsp/reports/requestDetails.jsp</result>
+		</action>
+		
+		<action name="ajaxExeLog" method="ajaxExeLog" class="ReportAction">
+			<result name="success">/WEB-INF/jsp/reports/exeLog.jsp</result>
+		</action>
+		<action name="updateReport" method="updateReport" class="ReportAction">
+			<result name="success">/WEB-INF/jsp/reports/requestDetails.jsp</result>
+		</action>
+		
+		<action name="updateSql" method="updateSql" class="ReportAction">
+			<result name="success">/WEB-INF/jsp/reports/requestDetails.jsp</result>
+		</action>
+		
+		<action name="viewSql" method="viewSql" class="ReportAction">
+			<result name="success">/WEB-INF/jsp/reports/requestSQL.jsp</result>
+		</action>
+	</package>
+</struts>

@@ -1,0 +1,44 @@
+body {
+	background:#fff !important;
+	color: #46484A;
+	text-decoration: none;
+	font-family: Tahoma !important;
+	font-size: 12px !important;
+}
+
+a {
+	text-decoration:underline;
+	color: #0098DE;
+	font-family: Tahoma !important;
+	font-size: 11px !important;
+	border: 0 !important;
+}
+a:hover{
+	text-decoration:overline;
+	font-style: italic;
+}
+
+span.sign{
+	/* font-size: 11px !important;  */
+	font-weight: bold; 
+}
+span.title{
+	color: #006390;
+	font-size: 11px !important;
+}
+span.email{
+	font-size: 11px !important;
+}
+
+span.address{
+	font-size: 11px !important;
+}
+
+
+hr {
+	border: 2px solid #006390;
+}
+span.note{
+	font-size: 10px !important;
+	font-style: italic;
+}

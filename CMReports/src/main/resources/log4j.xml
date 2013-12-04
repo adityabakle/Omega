@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration PUBLIC "-//log4j/log4j Configuration//EN" "/WEB-INF/log4j.dtd">
+
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+    
+    <appender name="STDOUT" class="org.apache.log4j.ConsoleAppender">
+       <layout class="org.apache.log4j.PatternLayout"> 
+          <param name="ConversionPattern" value="%d [%-5p] %c.%M:%L - %m%n"/> 
+       </layout>
+    </appender>
+    
+    <appender name="cmrUI" class="org.apache.log4j.FileAppender">
+    	<param name="file" value="${catalina.base}/logs/CMRPortal.log" />
+        <param name="append" value="true" />
+        <param name="encoding" value="UTF-8" />
+        <param name="MaxFileSize" value="2048KB"/>
+   		<!-- Keep one backup file -->
+    	<param name="MaxBackupIndex" value="3"/>
+       <layout class="org.apache.log4j.PatternLayout"> 
+          <param name="ConversionPattern" value="%d [%-5p] %c:%L - %m%n"/> 
+       </layout>
+    </appender>
+    
+    <appender name="carriers" class="org.apache.log4j.FileAppender">
+    	<param name="file" value="${catalina.base}/logs/carrierReport.log" />
+        <param name="append" value="true" />
+        <param name="encoding" value="UTF-8" />
+        <param name="MaxFileSize" value="2048KB"/>
+   		<!-- Keep one backup file -->
+    	<param name="MaxBackupIndex" value="3"/>
+       <layout class="org.apache.log4j.PatternLayout"> 
+          <param name="ConversionPattern" value="%d [%-5p] %c:%L - %m%n"/> 
+       </layout>
+    </appender>
+    
+   
+    
+    <!-- specify the logging level for loggers from other libraries -->
+    <logger name="com.cellmania.cmreports">
+    	<level value="DEBUG" />
+    	<appender-ref ref="cmrUI"/>
+    	<appender-ref ref="STDOUT"/>
+    </logger>
+    
+     <logger name="com.cellmania.carriers">
+    	<level value="DEBUG" />
+    	<appender-ref ref="carriers"/>
+    	<appender-ref ref="STDOUT"/>
+    </logger>
+    
+     <logger name="java.sql.PreparedStatement">
+    	<level value="DEBUG" />
+    	<appender-ref ref="STDOUT"/>
+    </logger>
+    
+  
+   <!-- for all other loggers log only debug and above log messages -->
+    
+</log4j:configuration> 
+

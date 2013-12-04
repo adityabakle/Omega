@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="RequestMaster">
+
+<resultMap type="RequestDTO" id="resultRequestDetails">
+<id property="requestId" javaType="Long" column="REQUESTID"/>
+<result property="initialStartDate" javaType="Date" column="INITIALSTARTDATE"/>
+<result property="initialEndDate" javaType="Date" column="INITIALENDDATE"/>
+<result property="startDate" javaType="java.util.Date" column="STARTDATE"/>
+<result property="endDate" javaType="java.util.Date" column="ENDDATE"/>
+<result property="fileNamePrefix" javaType="String" column="FILENAMEPREFIX"/>
+<result property="fileExtension" javaType="String" column="FILEEXTENSION"/>
+<result property="currencyConversion" javaType="Double" column="CURRENCYCONVERSION"/>
+<result property="includeCP"  column="INCLUDECP" typeHandler="com.cellmania.cmreports.db.handlers.BooleanTypeHandler"/>
+<result property="includeBundles"  column="INCLUDEBUNDLES" typeHandler="com.cellmania.cmreports.db.handlers.BooleanTypeHandler"/>
+<result property="taxRate" javaType="Double" column="TAXRATE"/>
+<result property="scheduledDate" javaType="java.util.Date" column="SCHEDULEDATE"/>
+<result property="lastExecutedDate" javaType="java.util.Date" column="LASTEXECUTEDDATE"/>
+<result property="nextExecutionDate" javaType="java.util.Date" column="NEXTEXECUTIONDATE"/>
+<result property="xelement" javaType="Integer" column="X"/>
+<result property="yelement" javaType="Integer" column="Y"/>
+<result property="sql" javaType="String" column="SQL"/>
+<result property="csvHeader" javaType="String" column="CSVHEADER"/>
+<result property="createdDate" javaType="java.util.Date" column="CREATEDDATE"/>
+<result property="modifiedDate" javaType="java.util.Date" column="MODIFIEDDATE"/>
+<result property="updatedBy" javaType="Long" column="UPDATEDBY"/>
+<result property="updatedByName" javaType="String" column="UPDATEDBYNAME"/>
+<result property="expiryDate" javaType="java.util.Date" column="EXPIRYDATE"/>
+<result property="state" javaType="String" column="STATE"/>
+<association property="requestedBy" column="USERID" javaType="UserMasterDTO" select="UserMaster.getUserDetailsById"/>
+<association property="carrier" column="CARRIERID" javaType="CarrierMasterDTO" select="CarrierMaster.getCarrierDetailsById"/>
+<association property="report" column="REPORTID" javaType="ReportMasterDTO" select="ReportMaster.getReportDetailsById"/>
+
+<association property="frequency" column="FREQUENCYID" javaType="FrequencyDTO" select="RequestMaster.getFrequency"/>
+<association property="mail" column="MAILID" javaType="MailDTO" select="RequestMaster.getMailDetails"/>
+
+</resultMap>
+
+<select id="getRequestDetail" parameterType="Long" resultMap="resultRequestDetails">
+	SELECT R.REQUESTID, R.USERID, R.CARRIERID, R.REPORTID,
+       R.INITIALSTARTDATE, R.INITIALENDDATE, R.STARTDATE,
+       R.ENDDATE, R.FILENAMEPREFIX, R.FILEEXTENSION,
+       R.CURRENCYCONVERSION, R.INCLUDECP, R.INCLUDEBUNDLES,
+       R.TAXRATE, R.SCHEDULEDATE, R.LASTEXECUTEDDATE,
+       R.NEXTEXECUTIONDATE, R.FREQUENCYID, R.MAILID,
+       R.X, R.Y, R.SQL, R.CSVHEADER, R.CREATEDDATE,
+       R.MODIFIEDDATE, R.UPDATEDBY, UB.NAME UPDATEDBYNAME,
+       R.EXPIRYDATE, R.STATE
+  FROM REQUEST R, USERMASTER UB
+ WHERE R.UPDATEDBY = UB.USERID
+ AND R.REQUESTID = #{requestId,jdbcType=NUMERIC}
+</select>
+
+<resultMap type="RequestDTO" id="resultUserRequestDetails">
+<id property="requestId" javaType="Long" column="REQUESTID"/>
+<result property="requestedBy.userId" javaType="Long" column="USERID"/>
+<result property="requestedBy.name" javaType="String" column="USERNAME"/>
+<result property="carrier.carrierId" javaType="Long" column="CARRIERID"/>
+<result property="carrier.name" javaType="String" column="CARRIERNAME"/>
+<result property="carrier.displayName" javaType="String" column="CARRIERDISPNAME"/>
+<result property="report.reportId" javaType="Long" column="REPORTID"/>
+<result property="report.displayName" javaType="String" column="REPORTDISPNAME"/>
+<result property="report.name" javaType="String" column="REPORTNAME"/>
+<result property="startDate" javaType="java.util.Date" column="STARTDATE"/>
+<result property="endDate" javaType="java.util.Date" column="ENDDATE"/>
+<result property="scheduledDate" javaType="java.util.Date" column="SCHEDULEDATE"/>
+<result property="lastExecutedDate" javaType="java.util.Date" column="LASTEXECUTEDDATE"/>
+<result property="nextExecutionDate" javaType="java.util.Date" column="NEXTEXECUTIONDATE"/>
+<result property="createdDate" javaType="java.util.Date" column="CREATEDDATE"/>
+<result property="modifiedDate" javaType="java.util.Date" column="MODIFIEDDATE"/>
+<result property="updatedBy" javaType="Long" column="UPDATEDBY"/>
+<result property="expiryDate" javaType="java.util.Date" column="EXPIRYDATE"/>
+<result property="state" javaType="String" column="STATE"/>
+<association property="frequency" column="FREQUENCYID" javaType="FrequencyDTO" select="RequestMaster.getFrequency"/>
+<association property="mail" column="MAILID" javaType="MailDTO" select="RequestMaster.getMailDetails"/>
+</resultMap>
+<select id="getRequestForUser" parameterType="RequestParams" resultMap="resultUserRequestDetails">
+	SELECT R.REQUESTID, R.USERID, U.NAME USERNAME, R.CARRIERID,C.NAME CARRIERNAME,
+       C.DISPLAYNAME CARRIERDISPNAME, R.REPORTID,RP.NAME REPORTNAME, RP.DISPLAYNAME REPORTDISPNAME, R.STARTDATE,
+       R.ENDDATE, R.SCHEDULEDATE,R.LASTEXECUTEDDATE, R.NEXTEXECUTIONDATE,
+       R.FREQUENCYID, R.EXPIRYDATE, R.CREATEDDATE,R.UPDATEDBY,R.MODIFIEDDATE,R.STATE,R.MAILID
+  FROM REQUEST R, CARRIERMASTER C, USERMASTER U, REPORTMASTER RP
+ WHERE R.USERID = U.USERID
+   AND R.CARRIERID = C.CARRIERID
+   AND R.REPORTID = RP.REPORTID
+   <if test="userId!=null and userId &gt; 0">
+   	AND R.USERID = #{userId,jdbcType=NUMERIC}
+   </if>
+   <if test="!allJobs">
+	   <if test="!expiredJobs">
+	  		AND R.STATE <![CDATA[<>]]> 'expired'
+	  	</if>
+	  	<if test="expiredJobs">
+	  		AND R.STATE = 'expired'
+	  	</if>
+	  	<if test="activeJobs">
+	  		AND R.STATE = 'active'
+	  	</if>
+  	</if>
+  	<if test="reportId !=null and reportId &gt; 0">
+  		AND R.REPORTID = #{reportId, jdbcType=NUMERIC}
+  	</if>
+  	<if test="carrierId !=null and carrierId &gt; 0">
+  		AND R.CARRIERID = #{carrierId, jdbcType=NUMERIC}
+  	</if>
+ ORDER BY
+ <if test="!allJobs"> 
+ 	NVL(R.NEXTEXECUTIONDATE,R.SCHEDULEDATE) ${sortOrder}
+ </if><if test="allJobs">
+ 	NVL(R.LASTEXECUTEDDATE,R.SCHEDULEDATE) ${sortOrder}
+ </if>
+</select>
+
+
+<select id="getRequestForUserCount" parameterType="RequestParams" resultType="Long">
+	SELECT count(1) FROM REQUEST
+ <where>
+   <if test="userId!=null and userId &gt; 0">
+   		AND USERID = #{userId,jdbcType=NUMERIC}
+   </if>
+   <if test="!allJobs">
+	   <if test="!expiredJobs">
+	  		AND STATE <![CDATA[<>]]> 'expired'
+	  	</if>
+	  	<if test="expiredJobs">
+	  		AND STATE = 'expired'
+	  	</if>
+	  	<if test="activeJobs">
+	  		AND STATE = 'active'
+	  	</if>
+  	</if>
+  	<if test="reportId !=null and reportId &gt; 0">
+  		AND REPORTID = #{reportId, jdbcType=NUMERIC}
+  	</if>
+  	<if test="carrierId !=null and carrierId &gt; 0">
+  		AND CARRIERID = #{carrierId, jdbcType=NUMERIC}
+  	</if>
+ </where>
+</select>
+
+
+
+<resultMap type="ExecutionLogDTO" id="resultExecutionLogDetails">
+	<id property="id" javaType="Long" column="ID"/>
+	<result property="request.requestId" javaType="Long" column="REQUESTID"/>
+	<result property="startTime" javaType="java.util.Date" column="STARTTIME"/>
+	<result property="endTime" javaType="java.util.Date" column="ENDTIME"/>
+	<result property="reportStartDate" javaType="java.util.Date" column="REPORTSTARTDATE"/>
+	<result property="reportEndDate" javaType="java.util.Date" column="REPORTENDDATE"/>
+	<result property="currencyConversion" javaType="Double" column="CURRENCYCONVERSION"/>
+	<result property="taxRate" javaType="Double" column="TAXRATE"/>
+	<result property="success" typeHandler="com.cellmania.cmreports.db.handlers.BooleanTypeHandler" column="SUCCESS"/>
+	<result property="errorReason" javaType="String" column="ERRORREASON"/>
+	<result property="fileName" javaType="String" column="FILENAME"/>
+	<result property="mailedTo" javaType="String" column="MAILEDTO"/>
+	<result property="mailedCc" javaType="String" column="MAILEDCC"/>
+	<result property="attached" typeHandler="com.cellmania.cmreports.db.handlers.BooleanTypeHandler" column="ATTACHED"/>
+	<association property="request.carrier" column="CARRIERID" javaType="CarrierMasterDTO" select="CarrierMaster.getCarrierDetailsById"/>
+</resultMap>
+<select id="getExecutionLogForRequest" parameterType="RequestParams" resultMap="resultExecutionLogDetails">
+SELECT E.ID, E.REQUESTID, E.STARTTIME,R.CARRIERID,
+       E.ENDTIME, E.REPORTSTARTDATE,E.REPORTENDDATE,
+       E.TAXRATE,E.CURRENCYCONVERSION,E.SUCCESS,
+       E.ERRORREASON,E.FILENAME,E.MAILEDTO,
+       E.MAILEDCC,E.ATTACHED
+  FROM EXECUTIONLOG E, REQUEST R
+  <where>
+  	E.REQUESTID = R.REQUESTID
+  	<if test="requestId !=null and requestId &gt; 0">
+  		AND E.REQUESTID = #{requestId, jdbcType=NUMERIC}
+  	</if>
+  	<if test="exeLogId !=null and exeLogId &gt; 0">
+  		AND E.ID = #{exeLogId,jdbcType=NUMERIC}
+  	</if>
+  	<if test="userId !=null and userId &gt; 0">
+  		AND E.REQUESTID IN (SELECT DISTINCT REQUESTID
+							  FROM REQUEST R, MAIL M
+							 WHERE R.MAILID = M.MAILID
+							   AND (R.USERID = #{userId,jdbcType=NUMERIC} OR INSTR(M.TOADDRESS, #{email,jdbcType=VARCHAR}) > 0 OR
+							       INSTR(M.CCADDRESS, #{email,jdbcType=VARCHAR}) > 0))
+  		AND E.FILENAME IS NOT NULL
+  	</if>
+  	<if test="failedJobs">
+  		AND E.SUCCESS = 0
+  	</if>
+  	<if test="reportId !=null and reportId &gt; 0">
+  		AND R.REPORTID = #{reportId, jdbcType=NUMERIC}
+  	</if>
+  	<if test="carrierId !=null and carrierId &gt; 0">
+  		AND R.CARRIERID = #{carrierId, jdbcType=NUMERIC}
+  	</if>
+  </where>
+	ORDER BY NVL(E.ENDTIME,E.STARTTIME) DESC
+</select>
+
+<select id="getExecutionLogForRequestCount" parameterType="RequestParams" resultType="Long">
+SELECT count(1) FROM EXECUTIONLOG E, REQUEST R
+  <where>
+  	E.REQUESTID = R.REQUESTID
+  	<if test="requestId !=null and requestId &gt; 0">
+  		AND E.REQUESTID = #{requestId, jdbcType=NUMERIC}
+  	</if>
+  	<if test="userId !=null and userId &gt; 0">
+  		AND E.REQUESTID IN (SELECT DISTINCT REQUESTID
+							  FROM REQUEST R, MAIL M
+							 WHERE R.MAILID = M.MAILID
+							   AND (R.USERID = #{userId,jdbcType=NUMERIC} OR INSTR(M.TOADDRESS, #{email,jdbcType=VARCHAR}) > 0 OR
+							       INSTR(M.CCADDRESS, #{email,jdbcType=VARCHAR}) > 0))
+  		AND E.FILENAME IS NOT NULL
+  	</if>
+  	<if test="failedJobs">
+  		AND E.SUCCESS = 0
+  	</if>
+  	<if test="reportId !=null and reportId &gt; 0">
+  		AND R.REPORTID = #{reportId, jdbcType=NUMERIC}
+  	</if>
+  	<if test="carrierId !=null and carrierId &gt; 0">
+  		AND R.CARRIERID = #{carrierId, jdbcType=NUMERIC}
+  	</if>
+  </where>
+
+</select>
+
+<resultMap type="MailDTO" id="resultMailDetails">
+	<id property="mailId" javaType="Long" column="MAILID"/>
+	<result property="fromAddress" javaType="String" column="FROMADDRESS"/>
+	<result property="fromName" javaType="String" column="FROMNAME"/>
+	<result property="replyToAddress" javaType="String" column="REPLYTOADDRESS"/>
+	<result property="toAddress" javaType="String" column="TOADDRESS"/>
+	<result property="ccAddress" javaType="String" column="CCADDRESS"/>
+	<result property="subject" javaType="String" column="SUBJECT"/>
+	<result property="body" javaType="String" column="BODY"/>
+	<result property="includeFileLink" typeHandler="com.cellmania.cmreports.db.handlers.BooleanTypeHandler" column="INCLUDEFILELINK"/>
+	<result property="attachment" typeHandler="com.cellmania.cmreports.db.handlers.BooleanTypeHandler" column="ATTACHMENT"/>
+	<result property="includeDefaultFooter" typeHandler="com.cellmania.cmreports.db.handlers.BooleanTypeHandler" column="INCLUDEDEFAULTFOOTER"/>
+</resultMap>
+
+<select id="getMailDetails" resultMap="resultMailDetails" parameterType="Long">
+SELECT M.MAILID, M.FROMADDRESS, M.FROMNAME,
+       M.REPLYTOADDRESS, M.TOADDRESS,
+       M.CCADDRESS, M.SUBJECT,
+       M.BODY, M.INCLUDEFILELINK,
+       M.ATTACHMENT, M.INCLUDEDEFAULTFOOTER
+  FROM MAIL M
+  WHERE M.MAILID=#{mailId, jdbcType=NUMERIC}
+</select>
+
+ <select id="getSchedulingFrequencies" resultType="FrequencyDTO">
+ 	SELECT FREQUENCYID, CODE, NAME, INCREMENTPERIOD
+ 	  FROM FREQUENCY
+ 	 ORDER BY FREQUENCYID	
+ </select>
+ 
+ <resultMap type="RequestDTO" id="resultSLQRequestDetails">
+<id property="requestId" javaType="Long" column="REQUESTID"/>
+<result property="requestedBy.userId" javaType="Long" column="USERID"/>
+<result property="sql" javaType="String" column="SQL"/>
+<result property="csvHeader" javaType="String" column="CSVHEADER"/>
+<result property="state" javaType="String" column="STATE"/>
+</resultMap>
+
+  <select id="getSQLAndHeader" resultMap="resultSLQRequestDetails" parameterType="Long">
+ 	SELECT REQUESTID, SQL, CSVHEADER, USERID, STATE
+ 	  FROM REQUEST
+ 	 WHERE REQUESTID = #{requestId, jdbcType=NUMERIC}	
+ </select>
+ 
+ <select id="getFrequency" parameterType="Long" resultType="FrequencyDTO">
+ 	SELECT FREQUENCYID, CODE, NAME, INCREMENTPERIOD
+ 	  FROM FREQUENCY
+ 	 WHERE FREQUENCYID = #{frequencyId}
+ </select>
+ 
+ <select id="generateRequestId" resultType="Long" flushCache="true">
+ 	SELECT REQUEST_PK_SEQ.NEXTVAL FROM DUAL
+ </select>
+ 
+ <update id="unscheduleJob" parameterType="RequestDTO">
+ 	UPDATE REQUEST SET
+ 		STATE = #{state,jdbcType=VARCHAR},
+ 		NEXTEXECUTIONDATE = SYSTIMESTAMP,
+ 		EXPIRYDATE = SYSTIMESTAMP,
+ 		UPDATEDBY = #{updatedBy, jdbcType=NUMERIC}
+ 	WHERE REQUESTID = #{requestId, jdbcType=NUMERIC}
+ </update>
+ 
+ <insert id="addRequest" parameterType="RequestDTO">
+	 INSERT INTO REQUEST
+	  (REQUESTID,USERID,CARRIERID,REPORTID,INITIALSTARTDATE,
+	   INITIALENDDATE,STARTDATE,ENDDATE,FILENAMEPREFIX,
+	   FILEEXTENSION, CURRENCYCONVERSION, INCLUDECP, INCLUDEBUNDLES,
+	   TAXRATE, SCHEDULEDATE, NEXTEXECUTIONDATE,FREQUENCYID, MAILID,
+	   X, Y, SQL, CSVHEADER, UPDATEDBY, EXPIRYDATE,STATE)
+	VALUES
+	  (#{requestId, jdbcType=NUMERIC}, #{requestedBy.userId,jdbcType=NUMERIC}, #{carrier.carrierId, jdbcType=NUMERIC}, #{report.reportId, jdbcType=NUMERIC},
+	   #{startDate, jdbcType=TIMESTAMP},#{endDate, jdbcType=TIMESTAMP},#{startDate, jdbcType=TIMESTAMP},#{endDate, jdbcType=TIMESTAMP},
+	   #{fileNamePrefix, jdbcType=VARCHAR},#{fileExtension, jdbcType=VARCHAR},#{currencyConversion, jdbcType=NUMERIC},
+	   #{includeCP, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler},
+	   #{includeBundles, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler},
+	   #{carrier.taxRate, jdbcType=NUMERIC},#{scheduledDate, jdbcType=TIMESTAMP},#{scheduledDate, jdbcType=TIMESTAMP},#{frequency.frequencyId, jdbcType=NUMERIC},
+	   #{mail.mailId, jdbcType=NUMERIC},#{xelement, jdbcType=NUMERIC},#{yelement, jdbcType=NUMERIC},#{sql, jdbcType=VARCHAR},#{csvHeader, jdbcType=VARCHAR},
+	   #{updatedBy, jdbcType=NUMERIC},#{expiryDate, jdbcType=TIMESTAMP},'scheduled')
+ </insert>
+ 
+ <insert id="addMailDetails" parameterType="MailDTO">
+ 	INSERT INTO MAIL 
+	  (MAILID,FROMADDRESS,FROMNAME,REPLYTOADDRESS,
+	   TOADDRESS,CCADDRESS,SUBJECT,BODY,INCLUDEFILELINK,
+	   ATTACHMENT,INCLUDEDEFAULTFOOTER)
+	VALUES 
+	  (#{mailId, jdbcType=NUMERIC},#{fromAddress, jdbcType=VARCHAR},#{fromName, jdbcType=VARCHAR},#{replyToAddress, jdbcType=VARCHAR},
+	   #{toAddress, jdbcType=VARCHAR},#{ccAddress, jdbcType=VARCHAR},#{subject, jdbcType=VARCHAR},#{body, jdbcType=VARCHAR},
+	   #{includeFileLink, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler},
+	   #{attachment, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler},
+	   #{includeDefaultFooter, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler})
+ </insert>
+ 
+ <update id="updateMailDetails" parameterType="MailDTO">
+ 	UPDATE MAIL SET
+ 		REPLYTOADDRESS = #{replyToAddress, jdbcType=VARCHAR},
+ 		TOADDRESS = #{toAddress, jdbcType=VARCHAR},
+ 		CCADDRESS = #{ccAddress, jdbcType=VARCHAR},
+ 		SUBJECT = #{subject, jdbcType=VARCHAR},
+ 		BODY = #{body, jdbcType=VARCHAR},
+ 		INCLUDEFILELINK = #{includeFileLink, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler},
+ 		ATTACHMENT = #{attachment, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler},
+ 		INCLUDEDEFAULTFOOTER = #{includeDefaultFooter, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler}
+ 	WHERE MAILID =  #{mailId, jdbcType=NUMERIC}
+ </update>
+ 
+ <update id="updateRequest" parameterType="RequestDTO">
+ 	UPDATE REQUEST SET 
+ 		<if test="sql!=null">
+ 			SQL = #{sql, jdbcType=VARCHAR},
+ 			CSVHEADER = #{csvHeader, jdbcType=VARCHAR}, 
+ 		</if>
+ 		UPDATEDBY = #{updatedBy, jdbcType=NUMERIC}
+ 	WHERE REQUESTID = #{requestId, jdbcType=NUMERIC}
+ </update>
+ 
+ <update id="createExecutionLog" statementType="CALLABLE" parameterType="ExecutionLogDTO">
+ 	{ #{id, jdbcType=NUMERIC,mode=OUT} = call execution_log.CREATE_EXECUTION_LOG(#{request.requestId, jdbcType=NUMERIC, mode=IN}) } 
+ </update>
+ 
+ <update id="completeJobExecution" statementType="CALLABLE" parameterType="ExecutionLogDTO">
+ 	{ call  execution_log.complete_job_execution(#{request.requestId, jdbcType=NUMERIC, mode=IN},#{request.frequency.code, jdbcType=VARCHAR, mode=IN},
+ 		#{request.nextExecutionDate, jdbcType=TIMESTAMP, mode=IN},
+ 		#{id, jdbcType=NUMERIC, mode=IN}, #{fileName, jdbcType=VARCHAR, mode=IN}, #{errorReason, jdbcType=VARCHAR, mode=IN}) }
+ </update>
+ 
+ <update id="updateAllActiveRequest" parameterType="RequestDTO">
+ 	UPDATE REQUEST 
+       SET LASTEXECUTEDDATE  = SYSTIMESTAMP,
+           STATE = #{state,jdbcType=VARCHAR}
+     WHERE STATE = 'active'
+ </update>
+ 
+ <update id="updateAllActiveExeLog" parameterType="ExecutionLogDTO">
+ 	UPDATE EXECUTIONLOG 
+       SET ENDTIME     = SYSTIMESTAMP,
+           SUCCESS     = 0,
+           ERRORREASON = 'Job terminated due to server force shutdown.',
+           FILENAME    = NULL
+     WHERE ENDTIME IS NULL AND FILENAME IS NULL
+ </update>
+ 
+</mapper>

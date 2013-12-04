@@ -1,0 +1,353 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="VirginReports">
+ <sql id="orderDateClause">
+  	 AND O.ORDER_DATE BETWEEN
+          TO_DATE(TO_CHAR(FROM_TZ(CAST(TO_DATE(#{startDate, typeHandler=com.cellmania.cmreports.db.handlers.DateTypeHandler} ||
+                                         ' 00:00:00',
+                                         'DD-MON-YYYY HH24:MI:SS') AS
+                                 TIMESTAMP),
+                            '${carrier.carrierTimeZone}') AT TIME ZONE
+                    '${serverTimeZone}',
+                    'DD-MON-YYYY hh24:mi:ss'),
+            'DD-MON-YYYY hh24:mi:ss') AND
+    TO_DATE(TO_CHAR(FROM_TZ(CAST(TO_DATE(#{endDate, typeHandler=com.cellmania.cmreports.db.handlers.DateTypeHandler} ||
+                                         ' 23:59:59',
+                                         'DD-MON-YYYY HH24:MI:SS') AS
+                                 TIMESTAMP),
+                            '${carrier.carrierTimeZone}') AT TIME ZONE
+                    '${serverTimeZone}',
+                    'DD-MON-YYYY hh24:mi:ss'),
+            'DD-MON-YYYY hh24:mi:ss')
+  </sql>
+  
+ <sql id="MSQuery1"> 
+    SELECT FROM_TZ(CAST(O.ORDER_DATE AS TIMESTAMP),
+	                '${serverTimeZone}') AT TIME ZONE '${carrier.carrierTimeZone}' ORDER_DATE,
+	       O.COMPANY_NAME, O.ITEM_ID,
+    	   O.EXTERNAL_ITEM_ID,
+           O.ITEM_NAME,X.SETTLEMENT_NAME,X.DISPLAY_NAME SET_DISPLAY_NAME,
+           X.PUBLISHER_FLAG,
+           DECODE(NVL(O.BUNDLE_TYPE_ID, 0),
+               0,
+               DECODE(O.ITEM_TYPE_ID,2,ITS.SUB_TYPE_NAME,IT.ITEM_TYPE_NAME),
+               1,
+               'Enum Bundle',
+               2,
+               'Prepack Bundle') ITEM_TYPE,
+           O.DEVICE_DISPLAY_NAME,D.DEVICE_NAME,
+		   O.SELL_PRICE,(O.SELL_PRICE * 8 / 100) SALES_TAX,
+           NVL(X.REVENUE_SHARE, 0) CP_SHARE_PCT,
+           NVL(X.REVENUE_SHARE4, 0) THIRD_PARTY_RIGHTS_SHARE_PCT,
+           NVL(X.REVENUE_SHARE3, 0) CELLMANIA_SHARE_PCT,
+           NVL(X.REVENUE_SHARE2, 0) CARRIER_SHARE_PCT,
+           (NVL(X.REVENUE_SHARE2, 0) / 100) * O.SELL_PRICE CARRIER_SHARE,
+           (NVL(X.REVENUE_SHARE4, 0) / 100) * O.SELL_PRICE THIRD_PARTY_RIGHTS_SHARE,
+           (NVL(X.REVENUE_SHARE3, 0) / 100) * O.SELL_PRICE CM_SHARE,
+           (NVL(X.REVENUE_SHARE, 0) / 100) * O.SELL_PRICE  CP_SHARE,
+           (NVL(X.REVENUE_SHARE3, 0) / 100) * O.SELL_PRICE CELLMANIA_SHARE,
+           CASE
+           	WHEN SELL_PRICE <![CDATA[<]]> 0 THEN
+           		1
+           	WHEN SELL_PRICE = 0 THEN
+           		-1
+           	ELSE
+           		0
+           END REFUND,
+           
+			DECODE(X.PUBLISHER_FLAG,
+                    NULL,
+                    'indirect',
+                    'false',
+                    'indirect',
+                    'true',
+                    'direct',
+                    '?') DIRECT_FLAG,
+             DECODE(O.SUBSCRIPTION_FLAG, 0, 'NO', 'YES') SUBSCRIPTION,
+             DECODE(X.PUBLISHER_FLAG,
+                    'true',
+                    (0.008 * O.SELL_PRICE),
+                    0) TESTING_REV_SHARE,
+             DECODE(O.SELL_PRICE,
+                    0,
+                    0.05,
+                    DECODE(O.SUBSCRIPTION_FLAG,
+                           1,
+                           (0.047 * O.SELL_PRICE),
+                           (0.07 * O.SELL_PRICE))) PLATFORM_REV_SHARE
+             FROM MF_ORDER O, MF_ITEM_TYPE IT,MF_DEVICE D,MF_ITEM_SUB_TYPE ITS,
+                  (SELECT REVENUE_SHARE,
+                          REVENUE_SHARE2,
+                          REVENUE_SHARE3,
+                          REVENUE_SHARE4,
+                          SETTLEMENT_NAME,
+                          DISPLAY_NAME,
+                          PUBLISHER_FLAG,
+                          Q.ID,
+                          COMPANY_NAME
+                     FROM MF_SETTLEMENT Q, MF_COMPANY C
+                    WHERE Q.COMPANY_ID = C.COMPANY_ID) X
+            WHERE O.COMPANY_NAME = X.COMPANY_NAME(+)
+              AND O.SETTLEMENT_ID = X.ID(+)
+              AND O.DEVICE_ID = D.DEVICE_ID
+              AND O.ITEM_TYPE_ID = IT.ITEM_TYPE_ID(+)
+              AND O.ITEM_TYPE_ID = IT.ITEM_TYPE_ID(+)
+   			  AND O.ITEM_SUB_TYPE_ID = ITS.SUB_TYPE_ID(+)
+              AND NVL(O.ORDER_TYPE, 'X') != 'REVIEW'
+              <if test="includeBundles">
+              	AND O.BUNDLE_TYPE_ID IS NULL
+              </if>
+              AND O.ORDER_TYPE IS NULL
+              <include refid="orderDateClause"/>
+  </sql>
+  
+  <sql id="MSQuery0">
+  	SELECT TO_CHAR(ORDER_DATE,'MON-YY') ORDER_DATE,COMPANY_NAME, ITEM_ID,EXTERNAL_ITEM_ID,
+		ITEM_NAME, SETTLEMENT_NAME,SET_DISPLAY_NAME,
+		DIRECT_FLAG,SUBSCRIPTION,
+		ITEM_TYPE, DEVICE_DISPLAY_NAME,DEVICE_NAME,
+		SELL_PRICE,REFUND,SALES_TAX,
+		PLATFORM_REV_SHARE, TESTING_REV_SHARE,
+		CELLMANIA_SHARE, CP_SHARE,CARRIER_SHARE,
+		THIRD_PARTY_RIGHTS_SHARE, 
+		DECODE(REFUND, 0, 1, 0) NUMBER_OF_ORDERS,
+	   	DECODE(REFUND, 1, 1, 0) NUMBER_OF_REFUNDS,
+	   	DECODE(REFUND, -1, 1, 0) NUMBER_OF_ZERO_ORDERS,
+	   	DECODE(DIRECT_FLAG, 'direct', (0.025 * CP_SHARE), 0) SETTLEMENT_REV_SHARE,
+	   	DECODE(DIRECT_FLAG,
+	          'direct',
+	          CP_SHARE + CELLMANIA_SHARE + (0.025 * CP_SHARE),
+	          'indirect',
+	          CP_SHARE + CELLMANIA_SHARE) CARRIER_INVOICE,
+	    CP_SHARE_PCT, CELLMANIA_SHARE_PCT, CARRIER_SHARE_PCT
+ 	FROM ( <include refid="MSQuery1"/> ) 
+  </sql>
+  
+  <resultMap id="RM_MonthlySalesReport" type="ReportDataDTO">
+  	 <result property="orderDate" column="ORDER_DATE"/>
+     <result property="companyName" column="COMPANY_NAME"/>
+     <result property="itemId" column="ITEM_ID"/>
+     <result property="externalItemId" column="EXTERNAL_ITEM_ID"/>
+     <result property="itemName" column="ITEM_NAME"/>
+     <result property="settlementName" column="SETTLEMENT_NAME"/>
+     <result property="settlementDispName" column="SET_DISPLAY_NAME"/>
+     <result property="directFlag" column="DIRECT_FLAG"/>
+     <result property="subscription" column="SUBSCRIPTION"/>
+     <result property="itemType" column="ITEM_TYPE"/>
+     <result property="deviceName" column="DEVICE_NAME"/>
+     <result property="deviceDisplayName" column="DEVICE_DISPLAY_NAME"/>
+     <result property="sellPrice" column="SELL_PRICE"/>
+     <result property="noOfOrders" column="NUMBER_OF_ORDERS"/>
+     <result property="noOfRefunds" column="NUMBER_OF_REFUNDS"/>
+     <result property="noOfZeroOrders" column="NUMBER_OF_ZERO_ORDERS"/>
+     <result property="salesTax" column="SALES_TAX"/>
+     <result property="cellmaniaShare" column="CELLMANIA_SHARE"/>
+     <result property="platformRevShare" column="PLATFORM_REV_SHARE"/>
+     <result property="testingRevShare" column="TESTING_REV_SHARE"/>
+     <result property="settlementRevShare" column="SETTLEMENT_REV_SHARE"/>
+     <result property="cpShare" column="CP_SHARE"/>
+     <result property="carrierShare" column="CARRIER_SHARE"/>
+     <result property="carrierInvoice" column="CARRIER_INVOICE"/>
+     <result property="csPct" column="CS_PCT"/>
+     <result property="cpSharePct" column="CP_SHARE_PCT"/> 
+     <result property="cellmaniaSharePct" column="CM_SHARE_PCT"/>
+  </resultMap>	
+  <select id="selRevShareReportData" parameterType="RequestDTO" resultMap="RM_MonthlySalesReport">
+  	SELECT ORDER_DATE,COMPANY_NAME,
+       ITEM_ID,EXTERNAL_ITEM_ID,ITEM_NAME,
+       SETTLEMENT_NAME,SET_DISPLAY_NAME, DIRECT_FLAG,
+       SUBSCRIPTION,ITEM_TYPE,
+       DEVICE_DISPLAY_NAME,DEVICE_NAME,
+       SUM(SELL_PRICE) SELL_PRICE,
+       SUM(NUMBER_OF_ORDERS) NUMBER_OF_ORDERS,
+       SUM(NUMBER_OF_REFUNDS) NUMBER_OF_REFUNDS,
+       SUM(NUMBER_OF_ZERO_ORDERS) NUMBER_OF_ZERO_ORDERS,
+       SUM(SALES_TAX) SALES_TAX,
+       SUM(PLATFORM_REV_SHARE) PLATFORM_REV_SHARE,
+       SUM(TESTING_REV_SHARE) TESTING_REV_SHARE,
+       SUM(SETTLEMENT_REV_SHARE) SETTLEMENT_REV_SHARE,
+       DECODE(DIRECT_FLAG,
+              'indirect',
+              DECODE(#{includeCP, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler}, 1, SUM(CELLMANIA_SHARE), 0),
+              SUM(CELLMANIA_SHARE)) CELLMANIA_SHARE,
+       DECODE(DIRECT_FLAG,
+              'indirect',
+              DECODE(#{includeCP, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler}, 1, SUM(CP_SHARE), 0),
+              SUM(CP_SHARE)) CP_SHARE,
+       SUM(CARRIER_SHARE) CARRIER_SHARE,
+       SUM(CARRIER_INVOICE) CARRIER_INVOICE,
+       DECODE(DIRECT_FLAG,
+              'indirect',
+              DECODE(#{includeCP, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler}, 1,  CP_SHARE_PCT, 0),
+               CP_SHARE_PCT) CP_SHARE_PCT , 
+       DECODE(DIRECT_FLAG,
+              'indirect',
+              DECODE(#{includeCP, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler}, 1, CELLMANIA_SHARE_PCT, 0),
+              CELLMANIA_SHARE_PCT) CM_SHARE_PCT, 
+       CARRIER_SHARE_PCT CS_PCT
+  FROM ( <include refid="MSQuery0"/> ) 
+  GROUP BY COMPANY_NAME,ORDER_DATE, ITEM_ID,EXTERNAL_ITEM_ID,
+          ITEM_NAME,SETTLEMENT_NAME,SET_DISPLAY_NAME,
+          DIRECT_FLAG, SUBSCRIPTION,
+          ITEM_TYPE, DEVICE_DISPLAY_NAME,DEVICE_NAME,
+          REFUND,CP_SHARE_PCT, CELLMANIA_SHARE_PCT, CARRIER_SHARE_PCT 
+  ORDER BY COMPANY_NAME,ORDER_DATE, SETTLEMENT_NAME,
+          ITEM_ID,ITEM_NAME,
+          DIRECT_FLAG,SUBSCRIPTION,
+          ITEM_TYPE,DEVICE_DISPLAY_NAME,DEVICE_NAME,
+          REFUND
+  </select>
+  
+  <resultMap id="RM_MonthlySalesReportGrandTotal" type="ReportDataDTO">
+  	 <result property="itemType" column="ITEM_TYPE"/>
+     <result property="directFlag" column="DIRECT_FLAG"/>
+     <result property="refund" column="REFUND"/>
+     <result property="sellPrice" column="SELL_PRICE"/>
+     <result property="noOfOrders" column="NUMBER_OF_ORDERS"/>
+     <result property="noOfRefunds" column="NUMBER_OF_REFUNDS"/>
+     <result property="noOfZeroOrders" column="NUMBER_OF_ZERO_ORDERS"/>
+     <result property="salesTax" column="SALES_TAX"/>
+     <result property="cellmaniaShare" column="CELLMANIA_SHARE"/>
+     <result property="platformRevShare" column="PLATFORM_REV_SHARE"/>
+     <result property="testingRevShare" column="TESTING_REV_SHARE"/>
+     <result property="settlementRevShare" column="SETTLEMENT_REV_SHARE"/>
+     <result property="cpShare" column="CP_SHARE"/>
+     <result property="carrierShare" column="CARRIER_SHARE"/>
+     <result property="carrierInvoice" column="CARRIER_INVOICE"/>
+     <result property="csPct" column="CS_PCT"/>
+  </resultMap>	
+  <select id="selRevShareReportSummaryData" parameterType="RequestDTO" resultMap="RM_MonthlySalesReportGrandTotal">
+  	SELECT DIRECT_FLAG,ITEM_TYPE, REFUND,SUM(SELL_PRICE) SELL_PRICE,
+       SUM(NUMBER_OF_ORDERS) NUMBER_OF_ORDERS,
+       SUM(NUMBER_OF_REFUNDS) NUMBER_OF_REFUNDS,
+       SUM(NUMBER_OF_ZERO_ORDERS) NUMBER_OF_ZERO_ORDERS,
+       SUM(SALES_TAX) SALES_TAX,
+       SUM(PLATFORM_REV_SHARE) PLATFORM_REV_SHARE,
+       SUM(TESTING_REV_SHARE) TESTING_REV_SHARE,
+       SUM(SETTLEMENT_REV_SHARE) SETTLEMENT_REV_SHARE,
+        DECODE(DIRECT_FLAG,
+              'indirect',
+              DECODE(#{includeCP, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler}, 1, SUM(CELLMANIA_SHARE), 0),
+              SUM(CELLMANIA_SHARE)) CELLMANIA_SHARE,
+       DECODE(DIRECT_FLAG,
+              'indirect',
+              DECODE(#{includeCP, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler}, 1, SUM(CP_SHARE), 0),
+              SUM(CP_SHARE)) CP_SHARE,
+       SUM(CARRIER_INVOICE) CARRIER_INVOICE,
+       SUM(CARRIER_SHARE) CARRIER_SHARE,
+       DECODE(SUM(SELL_PRICE),
+              0,
+              0,
+              100 *
+              DECODE(DIRECT_FLAG,
+                     'direct',
+                     SUM(SELL_PRICE) - SUM(CARRIER_INVOICE),
+                     SUM(SELL_PRICE) * 100 / 100 - SUM(CARRIER_INVOICE))) /
+       DECODE(SUM(SELL_PRICE), 0, 1, SUM(SELL_PRICE)) CS_PCT
+  FROM ( <include refid="MSQuery0"/> ) 
+  GROUP BY ITEM_TYPE,DIRECT_FLAG, REFUND
+  ORDER BY ITEM_TYPE,DIRECT_FLAG, REFUND
+  </select>
+  
+  <resultMap id="RM_GetJumtapReport" type="ReportDataDTO">
+     <result property="deviceDisplayName" column="DEVICE_DISPLAY_NAME"/>
+     <result property="itemId" column="ITEM_ID"/>
+     <result property="developerName" column="POINT_NAME"/>
+     <result property="companyName" column="FAMILY_NAME"/>
+     <result property="deviceName" column="DEVICE"/>
+     <result property="noOfOrders" column="ORDER_COUNT"/>
+     <result property="noOfRefunds" column="REFUND"/>
+     <result property="netSales" column="SALES"/>
+     <result property="settlementName" column="SETTLEMENT_NAME"/>
+     <result property="carrierShare" column="CARRIER_SHARE"/>
+  </resultMap>	
+  <select id="selJumtapReportData" parameterType="RequestDTO" resultMap="RM_GetJumtapReport">
+	  SELECT DEVICE_DISPLAY_NAME,
+	       ITEM_ID,
+	       POINT_NAME,
+	       FAMILY_NAME,
+	       DEVICE,
+	       REFUND,
+	       SUM(SELL_PRICE) SALES,
+	       SETTLEMENT_NAME,
+	       COUNT(ORDER_ID) ORDER_COUNT,
+	       SUM(CARRIER_SHARE) CARRIER_SHARE
+	  FROM (SELECT O.ORDER_ID,
+	               O.DEVICE,
+	               DP.POINT_NAME,
+	               DF.FAMILY_NAME,
+	               O.DEVICE_DISPLAY_NAME,
+	               O.ITEM_ID,
+	               O.SELL_PRICE,
+	               CASE
+	                 WHEN SELL_PRICE <![CDATA[<]]> 0 THEN
+	                  -1
+	                 WHEN SELL_PRICE <![CDATA[>=]]> 0 THEN
+	                  1
+	               END REFUND,
+	               S.SETTLEMENT_NAME,
+	               (O.SELL_PRICE * S.REVENUE_SHARE2 / 100) CARRIER_SHARE
+	          FROM MF_ORDER            O,
+	               MF_SETTLEMENT       S,
+	               MF_DISCOVERY_POINT  DP,
+	               MF_DISCOVERY_FAMILY DF
+	         WHERE O.SETTLEMENT_ID = S.ID
+	           AND O.DISCOVERY_POINT_ID = 116
+	           AND O.DISCOVERY_POINT_ID = DP.POINT_ID
+	           AND DP.FAMILY_ID = DF.FAMILY_ID
+	          <include refid="orderDateClause"/>
+           )
+	 GROUP BY DEVICE_DISPLAY_NAME,
+	          ITEM_ID,
+	          SETTLEMENT_NAME,
+	          DEVICE,
+	          POINT_NAME,
+	          REFUND,
+	          FAMILY_NAME
+	 ORDER BY DEVICE_DISPLAY_NAME
+  </select>
+  
+   <resultMap id="RM_GetMDNRingtoneRpt" type="ReportDataDTO">
+  	 <result property="orderDate" column="ORDER_DATE"/>
+  	 <result property="ptn" column="PTN"/>
+     <result property="deviceDisplayName" column="DEVICE_DISPLAY_NAME"/>
+     <result property="noOfOrders" column="ORDER_COUNT"/>
+     <result property="noOfRefunds" column="REFUND"/>
+     <result property="itemType" column="ITEM_TYPE"/>
+  </resultMap>	
+  <select id="selRingtoneReportData" parameterType="RequestDTO" resultMap="RM_GetMDNRingtoneRpt">
+  	SELECT ORDER_DATE,
+	       PTN,
+	       DEVICE_DISPLAY_NAME,
+	       SUM(REFUND) REFUND,
+	       SUM(PURCHASE) ORDER_COUNT,
+	       ITEM_TYPE
+	  FROM (SELECT TO_CHAR(FROM_TZ(CAST(O.ORDER_DATE AS TIMESTAMP),
+	                '${serverTimeZone}') AT TIME ZONE '${carrier.carrierTimeZone}', 'DD-MON-YY') ORDER_DATE,
+	               O.PTN,
+	               O.DEVICE_DISPLAY_NAME,
+	               CASE
+	                 WHEN O.SELL_PRICE <![CDATA[<]]> 0 THEN
+	                  1
+	                 ELSE
+	                  0
+	               END REFUND,
+	               CASE
+	                 WHEN O.SELL_PRICE <![CDATA[>=]]> 0 THEN
+	                  1
+	                 ELSE
+	                  0
+	               END PURCHASE,
+	               ITS.DISPLAY_NAME ITEM_TYPE
+	          FROM MF_ORDER O, MF_ITEM_SUB_TYPE ITS
+	         WHERE O.ORDER_TYPE IS NULL
+	           AND O.ITEM_SUB_TYPE_ID = ITS.SUB_TYPE_ID(+)
+	           AND ITS.ITEM_TYPE_ID = 2
+	           AND O.ITEM_TYPE_ID = 2
+	           <include refid="orderDateClause"/>
+	           )
+	 GROUP BY PTN, ORDER_DATE, DEVICE_DISPLAY_NAME, ITEM_TYPE
+	 ORDER BY ORDER_DATE, DEVICE_DISPLAY_NAME
+  </select>
+</mapper>

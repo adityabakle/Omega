@@ -1,0 +1,8 @@
+dev.mode=N
+driver=oracle.jdbc.driver.OracleDriver
+sqlsession.config.resource.xml=com/cellmania/cmreports/db/sqlsession/CMReports-sqlSession-config.xml
+
+#Prod
+username=cmreport
+password=c00ld0z3
+url=jdbc:oracle:thin:@eden.prod.cellmania.com:1521:cmora07

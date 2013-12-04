@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE tiles-definitions PUBLIC
+        "-//Apache Software Foundation//DTD Tiles Configuration 2.0//EN"
+        "http://tiles.apache.org/dtds/tiles-config_2_0.dtd">
+
+<tiles-definitions>
+	<definition name="mainLayout"></definition>
+	<definition name="mainLayout" template="/WEB-INF/template/mainLayout.jsp">
+		<put-attribute type="string" name="title"
+			value="Cellmania - Carrier Rev-Share Report Portal" />
+		<put-attribute name="scripts" value="/WEB-INF/template/scripts.jsp" />
+		<put-attribute name="header" value="/WEB-INF/template/header.jsp" />
+		<put-attribute name="menu" value="/WEB-INF/template/menu.jsp" />
+		<put-attribute name="body" value="" />
+		<put-attribute name="footer" value="/WEB-INF/template/footer.jsp" />
+	</definition>
+
+	<definition name="loginPage" extends="mainLayout">
+		<put-attribute name="menu" value="" />
+		<put-attribute name="body" value="/WEB-INF/jsp/login.jsp" />
+	</definition>
+
+	<definition name="forgotPassword" extends="mainLayout">
+		<put-attribute name="menu" value="&lt;br/&gt;" />
+		<put-attribute name="body" value="/WEB-INF/jsp/forgotPassword.jsp" />
+	</definition>
+
+	<definition name="resetPassword" extends="mainLayout">
+		<put-attribute name="menu" value="&lt;br/&gt;" />
+		<put-attribute name="body" value="/WEB-INF/jsp/resetPassword.jsp" />
+	</definition>
+
+	<definition name="dashboardPage" extends="mainLayout">
+		<put-attribute name="body" value="/WEB-INF/jsp/my/dashboard.jsp" />
+	</definition>
+
+	<definition name="settingsTab" extends="mainLayout">
+		<put-attribute name="body"
+			value="/WEB-INF/jsp/settings/settingsTabs.jsp" />
+	</definition>
+
+	<definition name="sqlExecutorPage" extends="mainLayout">
+		<put-attribute name="body"
+			value="/WEB-INF/jsp/reports/sqlExecutor.jsp" />
+	</definition>
+
+	<definition name="newReport" extends="mainLayout">
+		<put-attribute name="body" value="/WEB-INF/jsp/reports/newReport.jsp" />
+	</definition>
+
+	<definition name="jobTabs" extends="mainLayout">
+		<put-attribute name="body" value="/WEB-INF/jsp/my/jobTabs.jsp" />
+	</definition>
+
+	<definition name="myReports" extends="mainLayout">
+		<put-attribute name="body" value="/WEB-INF/jsp/my/myReports.jsp" />
+	</definition>
+
+	<definition name="errorDlFile" extends="mainLayout">
+		<put-attribute name="menu" value="&lt;br/&gt;" />
+		<put-attribute name="body" value="/WEB-INF/jsp/errorDlFile.jsp" />
+	</definition>
+
+	<definition name="myProfilePage" extends="mainLayout">
+		<put-attribute name="body" value="/WEB-INF/jsp/my/profile.jsp" />
+	</definition>
+
+
+</tiles-definitions>

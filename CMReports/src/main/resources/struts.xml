@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE struts PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+    "http://struts.apache.org/dtds/struts-2.0.dtd">
+
+<struts>
+	<include file="struts-my.xml"/>
+	<include file="struts-report.xml"/>
+	<include file="struts-settings.xml"/>
+	
+	<package name="home" extends="struts-default,json-default" namespace="/">
+	<result-types>
+		<result-type name="tiles" class="org.apache.struts2.views.tiles.TilesResult" />
+		<result-type name="json" class="org.apache.struts2.json.JSONResult"></result-type>
+		<result-type name="streamFile" class="com.cellmania.cmreports.web.util.DownloadFileResult"></result-type>
+	</result-types>
+	
+	<interceptors>
+          <interceptor name="CM_interceptor" class="cmInterceptor" />
+          <interceptor-stack name="CMStack">
+			<interceptor-ref name="fileUpload"/>
+            <interceptor-ref name="basicStack" /> <!-- can refer to another stack already defined in struts-default.xml -->
+            <interceptor-ref name="CM_interceptor"/>
+          </interceptor-stack>
+     </interceptors>
+     
+     <default-interceptor-ref name="CMStack" />
+        	
+       <global-results>
+			<result name="jsonResult" type="json"/>
+			<result name="loginPage" type="redirect">/login.do</result>
+			<result name="ajaxLoginPage">/WEB-INF/jsp/sessionTimeOut.jsp</result>
+       </global-results>
+        
+        <action name="testCon" class="DbConnectionAction">
+			<result name="success">/WEB-INF/jsp/DbConnection.jsp</result>
+		</action>
+		
+		<action name="login" method="login" class="LoginAction">
+			<result name="success" type="tiles">loginPage</result>
+		</action>
+		
+		<action name="authenticate" method="authenticate" class="LoginAction">
+			<result name="error" type="tiles">loginPage</result>
+			<result name="input" type="tiles">loginPage</result>
+			<result name="success" type="redirect">/my/dashboard.do</result>
+		</action>
+		
+		<action name="logout" class="LogoutAction">
+			<result name="success" type="redirect">/login.do</result>
+		</action>
+		
+		<action name="forgotPassword" method="forgotPassword" class="LoginAction">
+			<result name="success" type="tiles">forgotPassword</result>
+			<result name="input" type="tiles">forgotPassword</result>
+		</action>
+		
+		<action name="recoverPassword" method="recoverPassword" class="LoginAction">
+			<result name="success" type="tiles">loginPage</result>
+			<result name="input" type="tiles">forgotPassword</result>
+			<result name="error" type="tiles">forgotPassword</result>
+		</action>
+		
+		<action name="doReset" method="doReset" class="LoginAction">
+			<result name="success" type="tiles">loginPage</result>
+			<result name="error" type="tiles">resetPassword</result>
+		</action>
+		
+		<action name="resetPassword" method="resetPassword" class="LoginAction">
+			<result name="success" type="tiles">resetPassword</result>
+			<result name="error" type="redirect">/login.do</result>
+		</action>
+		
+		<action name="paswordExpired">
+			<result name="success">/WEB-INF/jsp/changePassword.jsp</result>
+		</action>
+		
+		<action name="changePassword" method="changePassword" class="LoginAction">
+			<result name="success">/WEB-INF/jsp/changePassword.jsp</result>
+		</action>
+		
+		<!-- SQL Executor -->
+		<action name="sqlhome" method="home" class="SqlExecutorAction" >
+			<result name="success" type="tiles">sqlExecutorPage</result>
+		</action>
+		
+		<action name="sqlSchReport" method="sqlSchReport" class="SqlExecutorAction" >
+			<result name="success">/WEB-INF/jsp/reports/sqlExecutorResult.jsp</result>
+		</action>
+		
+		<action name="dlFile" class="DownloadFileAction">
+			<result name="success" type="streamFile">
+				<param name="fileNameAttribute">fileName</param>
+				<param name="fileAttrib">dlFile</param>
+			</result>
+			
+			<result name="error" type="tiles">errorDlFile</result>
+		</action>
+		
+		<action name="json_*" method="{1}" class="JsonDropDownAction"/>
+	</package>
+</struts>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+    PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-config.dtd"> 
+<configuration>
+  <typeAliases>
+    <typeAlias alias="RequestDTO" type="com.cellmania.cmreports.db.request.RequestDTO"/>
+    <typeAlias alias="ReportDataDTO" type="com.cellmania.carriers.db.ReportDataDTO"/>
+  </typeAliases>
+  
+  <typeHandlers>
+    <typeHandler javaType="java.lang.Boolean" jdbcType="VARCHAR" handler="com.cellmania.cmreports.db.handlers.BooleanTypeHandler"/>
+    <typeHandler javaType="java.util.Date" jdbcType="VARCHAR" handler="com.cellmania.cmreports.db.handlers.DateTypeHandler"/>
+  </typeHandlers>
+  
+  <environments default="development">
+    <environment id="production">
+      <transactionManager type="JDBC"/>
+     <dataSource type="POOLED">
+        <property name="driver" value="${driver}"/>
+        <property name="url" value="jdbc:oracle:thin:@${dbServerName}.prod.cellmania.com:${dbPort}:${dbServiceId}"/>
+        <property name="username" value="${dbUserName}"/>
+        <property name="password" value="${dbPassword}"/>
+      </dataSource>
+    </environment>
+    <environment id="productionTNS">
+      <transactionManager type="JDBC"/>
+     <dataSource type="POOLED">
+        <property name="driver" value="${driver}"/>
+        <property name="url" value="jdbc:oracle:thin:@${dbTnsName}"/>
+        <property name="username" value="${dbUserName}"/>
+        <property name="password" value="${dbPassword}"/>
+      </dataSource>
+    </environment>
+    <environment id="development">
+      <transactionManager type="JDBC"/>
+      <dataSource type="POOLED">
+        <property name="driver" value="${driver}"/>
+        <property name="url" value="jdbc:oracle:thin:@${dbServerName}.cellmania.com:${dbPort}:${dbServiceId}"/>
+        <property name="username" value="${dbUserName}"/>
+        <property name="password" value="${dbPassword}"/>
+      </dataSource>
+    </environment>
+  </environments>
+  
+  <mappers>
+    <mapper resource="com/cellmania/carriers/sql/Virgin-sqlMapper.xml"/>
+    <mapper resource="com/cellmania/carriers/sql/Common-sqlMapper.xml"/>
+  </mappers>
+  
+</configuration>
+
+
+    

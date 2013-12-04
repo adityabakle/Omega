@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Common">
+<select id="sqlExecutor" resultType="String" parameterType="RequestDTO" flushCache="true">
+	${sql}
+</select>
+
+<select id="dbTimeStamp" resultType="java.util.Date" flushCache="true">
+	SELECT SYSTIMESTAMP FROM DUAL
+</select>
+
+<resultMap id="RM_ExceptionReport" type="ReportDataDTO">
+    <result property="dtLastUpdated" column="LAST_UPDATE_DATE"/>
+    <result property="cpShare" column="REVENUE_SHARE"/>
+    <result property="carrierShare" column="REVENUE_SHARE2"/>
+    <result property="cellmaniaShare" column="REVENUE_SHARE3"/>
+    <result property="thirdParty" column="REVENUE_SHARE4"/>
+    <result property="totalShare" column="TOTAL_SHARE"/>
+    <result property="settlementName" column="SETTLEMENT_NAME"/>
+    <result property="publisherFlag" column="PUBLISHER_FLAG"/>
+    <result property="companyName" column="COMPANY_NAME"/>
+    <result property="developerName" column="USER_NAME"/>
+</resultMap>	
+	  
+  <select id="selExceptionRptRevShareTotal" resultMap="RM_ExceptionReport">
+	SELECT Q.LAST_UPDATE_DATE,
+		   REVENUE_SHARE,
+	       REVENUE_SHARE2,
+	       REVENUE_SHARE3,
+	       REVENUE_SHARE4,
+	       REVENUE_SHARE + REVENUE_SHARE2 + REVENUE_SHARE3 + REVENUE_SHARE4 AS TOTAL_SHARE,
+	       SETTLEMENT_NAME,
+	       PUBLISHER_FLAG,
+	       COMPANY_NAME,
+	       NULL USER_NAME
+	  FROM MF_SETTLEMENT Q, MF_COMPANY C
+	 WHERE Q.COMPANY_ID = C.COMPANY_ID
+	   AND REVENUE_SHARE + REVENUE_SHARE2 + REVENUE_SHARE3 + REVENUE_SHARE4 <![CDATA[<>]]> 100
+  </select>
+  
+   <select id="selExceptionRptRevChange" parameterType="RequestDTO" resultMap="RM_ExceptionReport">
+  	SELECT Q.LAST_UPDATE_DATE,
+       REVENUE_SHARE,
+       REVENUE_SHARE2,
+       REVENUE_SHARE3,
+       REVENUE_SHARE4,
+       REVENUE_SHARE + REVENUE_SHARE2 + REVENUE_SHARE3 + REVENUE_SHARE4 TOTAL_SHARE,
+       SETTLEMENT_NAME,
+       PUBLISHER_FLAG,
+       COMPANY_NAME,
+       NVL(U.USER_NAME, 'Unknown') USER_NAME
+  FROM MF_SETTLEMENT Q, MF_COMPANY C,MF_USER U
+ WHERE Q.COMPANY_ID = C.COMPANY_ID
+ 	AND Q.LAST_UPDATE_BY = U.USER_ID(+)
+   	AND Q.LAST_UPDATE_DATE BETWEEN TRUNC(TO_DATE(#{startDate, typeHandler=com.cellmania.cmreports.db.handlers.DateTypeHandler},'DD-MON-YYYY'))
+   	AND TRUNC(TO_DATE(#{endDate, typeHandler=com.cellmania.cmreports.db.handlers.DateTypeHandler},'DD-MON-YYYY')+1)
+  </select>
+  
+</mapper>

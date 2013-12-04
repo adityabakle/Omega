@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ReportMaster">
+ 	<resultMap type="ReportMasterDTO" id="rmReportDetails">
+	<id property="reportId" javaType="Long" column="REPORTID"/>
+	<result property="name" javaType="String" column="NAME"/>
+	<result property="displayName" javaType="String" column="DISPLAYNAME"/>
+	<result property="fileNamePrefix" javaType="String" column="FILENAMEPREFIX"/>
+	<result property="fileExtension.fileExtensionId" javaType="Long" column="FILEEXTENSIONID"/>
+	<result property="fileExtension.name" javaType="String" column="FEX_NAME"/>
+	<result property="fileExtension.extension" javaType="String" column="FEX_EXTENSION"/>
+	<result property="fileExtension.enabled" column="FEX_ENABLED" typeHandler="com.cellmania.cmreports.db.handlers.BooleanTypeHandler"/>
+	<result property="dbServiceApiName" javaType="String" column="DBSERVICEAPINAME"/>
+	<result property="xlsApiName" javaType="String" column="XLSAPINAME"/>
+	<result property="enabled" column="ENABLED" typeHandler="com.cellmania.cmreports.db.handlers.BooleanTypeHandler"/>
+	<result property="createdDate" javaType="java.util.Date" column="CREATEDDATE"/>
+	<result property="modifiedDate" javaType="java.util.Date" column="MODIFIEDDATE"/>
+	<result property="updatedBy" javaType="Long" column="UPDATEDBY"/>
+	<result property="updatedByName" javaType="String" column="UPDATEDBYNAME"/>
+	<result property="csvHeader" javaType="String" column="CSVHEADER"/>
+</resultMap>
+ <select id="getReportDetails" parameterType="ReportParams" resultMap="rmReportDetails" flushCache="true">
+ 	SELECT R.REPORTID, R.NAME, R.DISPLAYNAME,
+	       R.FILENAMEPREFIX, R.FILEEXTENSIONID, F.NAME FEX_NAME,
+	       F.EXTENSION FEX_EXTENSION, F.ENABLED FEX_ENABLED,
+	       R.DBSERVICEAPINAME, R.XLSAPINAME, R.ENABLED,
+	       R.CREATEDDATE, R.MODIFIEDDATE, R.UPDATEDBY,
+	       UB.NAME UPDATEDBYNAME, R.CSVHEADER
+	  FROM REPORTMASTER R, USERMASTER UB, FILEEXTENSION F
+ 	<where>
+ 		   R.UPDATEDBY = UB.USERID (+)
+	   AND R.FILEEXTENSIONID = F.FILEEXTENSIONID
+ 		<if test="reportId!=null and reportId &gt; 0">
+ 			AND R.REPORTID = #{reportId, jdbcType=NUMERIC}
+ 		</if>
+ 		<if test="name!=null">
+ 			AND R.NAME = #{name, jdbcType=VARCHAR}
+ 		</if>
+ 		<if test="enabled!=null">
+ 			AND R.ENABLED = #{enabled, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler}
+ 		</if>
+ 	</where>
+ 	ORDER BY R.DISPLAYNAME
+ </select>
+ 
+ <select id="getReportDetailsById" parameterType="Long" resultType="ReportMasterDTO" flushCache="true">
+ 	SELECT R.REPORTID, R.NAME, R.DISPLAYNAME,
+	       R.FILENAMEPREFIX, R.FILEEXTENSIONID, F.NAME FEX_NAME,
+	       F.EXTENSION FEX_EXTENSION,
+	       R.DBSERVICEAPINAME, R.XLSAPINAME, R.CSVHEADER
+	  FROM REPORTMASTER R, FILEEXTENSION F
+ 	<where>
+ 		R.FILEEXTENSIONID = F.FILEEXTENSIONID
+ 		AND R.REPORTID = #{reportId, jdbcType=NUMERIC}
+ 	</where>
+ </select>
+ 
+ <select id="getFileExtensions" resultType="FileExtensionDTO">
+ 	SELECT FILEEXTENSIONID, NAME, EXTENSION 
+ 	FROM FILEEXTENSION
+ </select>
+ 
+ <select id="getReportsForCarrier" parameterType="ReportParams" resultType="ReportMasterDTO">
+ 	SELECT R.DISPLAYNAME, R.REPORTID
+	  FROM REPORTMASTER R, CARRIERREPORTXREF CRX
+	 WHERE CRX.CARRIERID = #{carrierId, jdbcType=NUMERIC}
+	   AND CRX.REPORTID = R.REPORTID
+	   AND R.ENABLED = #{enabled, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler}
+	 ORDER BY R.DISPLAYNAME
+ </select>
+ 
+ <select id="checkDuplicateReport" resultType="long" parameterType="ReportParams">
+ 		SELECT count (1)
+ 		  FROM REPORTMASTER R
+ 		 <where>
+ 		 	<if test="name != null">
+ 		 		UPPER(R.NAME) = UPPER(#{name, jdbcType=VARCHAR})
+ 		 	</if>
+ 		 	<if test="reportId != null">
+ 		 		AND R.REPORTID <![CDATA[<>]]> #{reportId, jdbcType=NUMERIC}
+ 		 	</if>
+ 		 </where>
+ 	</select>
+ 
+ 	
+ <insert id="addReport" parameterType="ReportMasterDTO">
+ 	INSERT INTO REPORTMASTER (NAME, DISPLAYNAME, FILENAMEPREFIX, FILEEXTENSIONID, DBSERVICEAPINAME, XLSAPINAME,ENABLED, UPDATEDBY,CSVHEADER) VALUES
+ 	(#{name, jdbcType=VARCHAR}, #{displayName, jdbcType=VARCHAR}, #{fileNamePrefix, jdbcType=VARCHAR}, #{fileExtension.fileExtensionId, jdbcType=NUMERIC},
+ 	 #{dbServiceApiName, jdbcType=VARCHAR}, #{xlsApiName, jdbcType=VARCHAR}, #{enabled, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler},
+ 	 #{updatedBy, jdbcType=NUMERIC}, #{csvHeader, jdbcType=VARCHAR})
+ </insert>
+ 
+ <update id="updateReport" parameterType="ReportMasterDTO">
+ 	UPDATE REPORTMASTER SET
+ 		DISPLAYNAME = #{displayName, jdbcType=VARCHAR},
+ 		FILENAMEPREFIX =  #{fileNamePrefix, jdbcType=VARCHAR},
+ 		FILEEXTENSIONID = #{fileExtension.fileExtensionId, jdbcType=NUMERIC},
+ 		DBSERVICEAPINAME = #{dbServiceApiName, jdbcType=VARCHAR},
+ 		XLSAPINAME = #{xlsApiName, jdbcType=VARCHAR},
+ 		ENABLED = #{enabled, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler},
+ 		UPDATEDBY = #{updatedBy, jdbcType=NUMERIC},
+ 		CSVHEADER = #{csvHeader, jdbcType=VARCHAR}
+ 	WHERE REPORTID = #{reportId}
+ </update>
+ 
+</mapper>

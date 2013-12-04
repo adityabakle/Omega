@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="BoostReports">  
+
+  <resultMap id="RM_MonthlySalesReport" type="ReportDataDTO">
+  	 <result property="orderDate" column="ORDER_DATE"/>
+     <result property="companyName" column="DEVELOPER_NAME"/>
+     <result property="itemName" column="DEVICE_DISPLAY_NAME"/>
+     <result property="sellPrice" column="SELL_PRICE"/>
+     <result property="noOfOrders" column="NO_OF_PURCHASE"/>
+     <result property="totalSellPrice" column="TOTAL_SELL_PRICE"/>
+     <result property="subscription" column="SUBSCRIPTION_FLAG"/>
+     <result property="launchDate" column="LIVE_DATE"/>
+  </resultMap>	
+  
+  <select id="selSimpleRevShareReportData" parameterType="RequestDTO" resultMap="RM_MonthlySalesReport">
+	SELECT A.DEVICE_DISPLAY_NAME,
+	       A.DEVELOPER_NAME,
+	       COUNT(*) NO_OF_PURCHASE,
+	       A.SELL_PRICE,
+	       SUM(A.SELL_PRICE) TOTAL_SELL_PRICE,
+	       TO_CHAR(MAX(B.LIVE_DATE), 'DD-MON-YYYY') LIVE_DATE,
+	       TO_CHAR(A.ORDER_DATE, 'MON-YYYY') ORDER_DATE,
+	       DECODE(NVL(A.SUBSCRIPTION_FLAG, 0), 0, 'No', 1, 'Yes') SUBSCRIPTION_FLAG
+	  FROM MF_ORDER A, MF_ITEM B
+	 WHERE A.ORDER_TYPE IS NULL
+	   AND A.ORDER_DATE BETWEEN
+	       TO_DATE(#{startDate, typeHandler=com.cellmania.cmreports.db.handlers.DateTypeHandler} || ':00:00:00', 'DD-MON-YYYY:hh24:mi:ss') AND
+	       TO_DATE(#{endDate, typeHandler=com.cellmania.cmreports.db.handlers.DateTypeHandler} || ':23:59:59', 'DD-MON-YYYY:hh24:mi:ss')
+	   AND A.ITEM_ID = B.ITEM_ID(+)
+	   AND A.COMPANY_ID = 1080 <!--  Reports will include only Our developer Report. -->
+	 GROUP BY A.DEVELOPER_NAME,
+	          A.DEVICE_DISPLAY_NAME,
+	          A.SELL_PRICE,
+	          TO_CHAR(A.ORDER_DATE, 'MON-YYYY'),
+	          NVL(A.SUBSCRIPTION_FLAG, 0)
+	 ORDER BY A.DEVELOPER_NAME, TO_DATE(ORDER_DATE, 'MON-YYYY')
+</select>
+</mapper>

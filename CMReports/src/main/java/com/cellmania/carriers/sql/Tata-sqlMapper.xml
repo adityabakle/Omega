@@ -1,0 +1,470 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="TataReports" >
+   
+  <!-- Report # 1 -->
+   <resultMap id="RM_LIR_ItemListing" type="ReportDataDTO">
+  	 <result property="deviceDisplayName" column="DEVICE_DISPLAY_NAME"/>
+  	 <result property="developerName" column="DEVELOPER_NAME"/>
+  	 <result property="launchDate" column="LIVE_DATE"/>
+  	 <result property="companyName" column="COMPANY_ID"/>
+  	 <result property="longDesc" column="LDESC"/>
+  	 <result property="shortDesc" column="SDESC"/>
+  	 <result property="fileSize" column="FILE_SIZE"/>
+  	 <result property="sellPrice" column="BEST_PRICE"/>
+  	 <result property="renewalPrice" column="RENEWAL_PRICE"/>
+  	 <result property="priceModelName" column="PRICE_MODEL_NAME"/>
+  	 <result property="itemType" column="ITEM_TYPE"/>
+  	 <result property="networkAware" column="NETWORK_AWARE"/>
+  	 <result property="publisherFlag" column="PUB_FLAG"/>
+  	 <result property="itemId" column="ITEM_ID"/>
+  	 <result property="noOfOrders" column="noOfOrders"/>
+  	 <result property="externalItemId" column="IMAGE_FILE"/>
+  	 <collection property="devices" 
+  	 	column="compId=COMPANY_ID, devName=DEVELOPER_NAME, dispName=DEVICE_DISPLAY_NAME" 
+  	 	javaType="ArrayList" select="getSupportedDevices">
+  	 </collection>
+  	 <collection property="mappedCat" 
+  	 	column="compId=COMPANY_ID, devName=DEVELOPER_NAME, dispName=DEVICE_DISPLAY_NAME" 
+  	 	javaType="ArrayList" select="getMappedCategories">
+  	 </collection>
+  </resultMap>	
+  <select id="getItemListing" resultMap="RM_LIR_ItemListing">
+  	SELECT I.DEVICE_DISPLAY_NAME,
+	       I.DEVELOPER_NAME,
+	       I.COMPANY_ID,
+	       TO_CHAR(MAX(I.LIVE_DATE),'DD-MON-YYYY')  LIVE_DATE,
+	       MAX(NVL(I.LDESC,'N/A')) LDESC,
+	       MAX(NVL(I.SDESC,'N/A')) SDESC,
+	       MAX(I.FILE_SIZE) FILE_SIZE,
+	       MAX(PM.PRICE_MODEL_DISPLAY_NAME) PRICE_MODEL_NAME,
+	       MAX(IP.BEST_PRICE) BEST_PRICE,
+	       MAX(NVL(IP.RENEWAL_PRICE,0)) RENEWAL_PRICE,
+	       MIN(IT.DISPLAY_NAME) ITEM_TYPE,
+       	   MIN(I.NETWORK_AWARE) NETWORK_AWARE,
+       	   DECODE(C.PUBLISHER_FLAG, 'true', 'IN',' ') PUB_FLAG,
+       	   MAX(I.PHONE_PREVIEW_IMAGE) IMAGE_FILE,
+       	   MAX(I.ITEM_ID) ITEM_ID,
+       	   COUNT(I.ITEM_ID) noOfOrders
+	  FROM MF_ITEM I, MF_ITEM_PRICE IP, MF_ITEM_TYPE IT, MF_COMPANY C, MF_PRICE_MODEL PM
+	 WHERE I.LIVE_DATE IS NOT NULL
+	   AND I.STATUS = 1
+	   AND I.LIVE_DATE <![CDATA[<]]> SYSDATE
+	   AND I.ITEM_ID = IP.ITEM_ID
+	   AND I.COMPANY_ID = C.COMPANY_ID
+	   AND IP.PRICE_MODEL_ID = PM.PRICE_MODEL_ID
+	   AND I.ITEM_TYPE_ID = IT.ITEM_TYPE_ID
+	 GROUP BY I.DEVICE_DISPLAY_NAME,
+          	  I.DEVELOPER_NAME,
+          	  I.COMPANY_ID,
+          	  DECODE(C.PUBLISHER_FLAG, 'true', 'IN', ' ')
+	 ORDER BY I.DEVELOPER_NAME,I.DEVICE_DISPLAY_NAME
+  </select>
+  
+  <select id="getSupportedDevices" resultType="String" parameterType="Map">
+  	SELECT DISTINCT D.DEVICE_NAME
+	  FROM MF_ITEM              I,
+	       MF_ITEM_DEVICE_GROUP IDG,
+	       MF_DEVICE_GROUP_MAP  DGM,
+	       MF_DEVICE            D       
+	 WHERE I.COMPANY_ID = #{compId}
+	   AND I.DEVELOPER_NAME = #{devName}
+	   AND I.DEVICE_DISPLAY_NAME = #{dispName}
+	   AND I.STATUS = 1
+	   AND I.LIVE_DATE IS NOT NULL
+	   AND I.LIVE_DATE <![CDATA[<]]>SYSDATE
+	   AND I.ITEM_ID = IDG.ITEM_ID
+	   AND IDG.DEVICE_GROUP_ID = DGM.DEVICE_GROUP_ID
+	   AND DGM.DEVICE_ID = D.DEVICE_ID
+	   ORDER BY DEVICE_NAME
+  </select>
+  
+  <select id="getMappedCategories" resultType="String" parameterType="Map">
+  	SELECT DISTINCT PN.NODE_NAME
+	  FROM MF_ITEM I, MF_ITEM_CATEGORY IC, PP_CAT_NODE PN
+	 WHERE I.ITEM_ID = IC.ITEM_ID
+	   AND IC.NODE_ID = PN.NODE_ID
+	   AND I.COMPANY_ID = #{compId}
+	   AND I.DEVELOPER_NAME = #{devName}
+	   AND I.DEVICE_DISPLAY_NAME = #{dispName}
+	   AND I.STATUS = 1
+	   AND I.LIVE_DATE IS NOT NULL
+	   AND I.LIVE_DATE <![CDATA[<]]> SYSDATE
+	 ORDER BY NODE_NAME
+  </select>
+  
+ <!-- Report # 2 -->
+  <resultMap id="RM_LIR_ItemCountByOS" type="ReportDataDTO">
+  	<result property="deviceDisplayName" column="DISPLAY_NAME"/>
+  	<result property="noOfOrders" column="NUMBER_OF_ITEMS"/>
+  </resultMap>	
+  <select id="getItemCountByOS" resultMap="RM_LIR_ItemCountByOS">
+  	SELECT IT.DISPLAY_NAME, COUNT(X.ITEM_ID) NUMBER_OF_ITEMS
+	  FROM (SELECT MIN(I.ITEM_ID) ITEM_ID, MIN(I.ITEM_TYPE_ID) ITEM_TYPE_ID
+	          FROM MF_ITEM I, MF_COMPANY C
+	         WHERE I.LIVE_DATE IS NOT NULL
+	           AND I.LIVE_DATE <![CDATA[<]]> SYSDATE
+	           AND I.COMPANY_ID = C.COMPANY_ID
+	           AND I.STATUS = 1
+	         GROUP BY I.DEVICE_DISPLAY_NAME, I.DEVELOPER_NAME, I.COMPANY_ID) X,
+	       MF_ITEM_TYPE IT
+	 WHERE X.ITEM_TYPE_ID = IT.ITEM_TYPE_ID
+	 GROUP BY X.ITEM_TYPE_ID, IT.DISPLAY_NAME
+	HAVING COUNT(X.ITEM_ID) <![CDATA[>]]> 0
+	 ORDER BY IT.DISPLAY_NAME
+  </select>
+  
+  <!-- Report # 3 -->
+  <resultMap id="RM_LIR_CatItemCount" type="ReportDataDTO">
+     <result property="catId" column="NODE_ID"/>
+     <result property="deviceDisplayName" column="DISPLAY_NAME"/>
+     <result property="noOfOrders" column="NO_OF_ITEMS"/>
+  </resultMap>	
+  <select id="getCatItemCount" resultMap="RM_LIR_CatItemCount">
+	 SELECT CN.NODE_ID, CN.DISPLAY_NAME, COUNT(X.ITEM_ID) NO_OF_ITEMS
+	  FROM PP_CAT_NODE CN,
+	       (SELECT IC.NODE_ID, MAX(I.ITEM_ID) ITEM_ID
+	          FROM MF_ITEM I, MF_COMPANY C, MF_ITEM_CATEGORY IC
+	         WHERE I.LIVE_DATE IS NOT NULL
+	           AND I.LIVE_DATE <![CDATA[<]]> SYSDATE
+	           AND I.COMPANY_ID = C.COMPANY_ID
+	           AND I.ITEM_ID = IC.ITEM_ID
+	           AND I.STATUS = 1
+	         GROUP BY I.DEVICE_DISPLAY_NAME,
+	                  I.DEVELOPER_NAME,
+	                  I.COMPANY_ID,
+	                  IC.NODE_ID) X
+	 WHERE X.NODE_ID = CN.NODE_ID
+	 GROUP BY CN.DISPLAY_NAME, CN.NODE_ID
+	 ORDER BY CN.DISPLAY_NAME
+  </select>
+  
+  <!-- Report # 4 -->
+  <resultMap id="RM_DeviceItemCount" type="ReportDataDTO">
+  	<result property="appTypeId" column="DEVICE_ID"/>
+  	 <result property="deviceDisplayName" column="DEVICE_NAME"/>
+     <result property="noOfOrders" column="NO_OF_ITEMS"/>
+  </resultMap>	
+  <select id="getDeviceItemCount" resultMap="RM_DeviceItemCount">
+  	SELECT MIN(D.DEVICE_ID) DEVICE_ID,D.DEVICE_NAME, COUNT(DI.ITEM_ID) NO_OF_ITEMS
+	  FROM MF_DEVICE D,
+	       MF_ITEM I, MF_COMPANY C,
+	       (SELECT DISTINCT DGM.DEVICE_ID, IDG.ITEM_ID
+	          FROM MF_DEVICE_GROUP_MAP DGM, MF_ITEM_DEVICE_GROUP IDG
+	         WHERE DGM.DEVICE_GROUP_ID = IDG.DEVICE_GROUP_ID) DI
+	 WHERE I.LIVE_DATE IS NOT NULL
+	   AND I.LIVE_DATE <![CDATA[<]]> SYSDATE
+	   AND I.STATUS = 1
+	   AND I.COMPANY_ID = C.COMPANY_ID
+	   AND D.DEVICE_ID = DI.DEVICE_ID
+	   AND DI.ITEM_ID = I.ITEM_ID
+	 GROUP BY D.DEVICE_NAME
+	 ORDER BY D.DEVICE_NAME
+  </select>
+  
+  
+  <!-- Report # 5 -->
+  <resultMap id="RM_ItemFreePaidCount" type="ReportDataDTO">
+  	 <result property="deviceDisplayName" column="PRICE_MODEL_DISPLAY_NAME"/>
+     <result property="noOfOrders" column="NO_OF_ITEMS"/>
+  </resultMap>	
+  <select id="getItemFreePaidCount" resultMap="RM_ItemFreePaidCount">
+  	SELECT PM.PRICE_MODEL_DISPLAY_NAME, COUNT(X.ITEM_ID) NO_OF_ITEMS
+	  FROM MF_ITEM_PRICE IP,
+	       MF_PRICE_MODEL PM,
+	       (SELECT MAX(I.ITEM_ID) ITEM_ID
+	          FROM MF_ITEM I, MF_COMPANY C
+	         WHERE I.LIVE_DATE IS NOT NULL
+	           AND I.LIVE_DATE <![CDATA[<]]> SYSDATE
+	           AND I.COMPANY_ID = C.COMPANY_ID
+	           AND I.STATUS = 1
+	         GROUP BY I.DEVICE_DISPLAY_NAME, I.DEVELOPER_NAME, I.COMPANY_ID) X
+	 WHERE X.ITEM_ID = IP.ITEM_ID
+	   AND PM.PRICE_MODEL_ID = IP.PRICE_MODEL_ID
+	 GROUP BY PM.PRICE_MODEL_DISPLAY_NAME, IP.PRICE_MODEL_ID
+	 ORDER BY PM.PRICE_MODEL_DISPLAY_NAME
+  </select>
+  
+  <resultMap id="RM_CatItemPriceCount" type="ReportDataDTO">
+  	 <result property="deviceDisplayName" column="BEST_PRICE"/>
+     <result property="noOfOrders" column="NO_OF_ITEMS"/>
+  </resultMap>	
+  <select id="selCatItemPriceCount" parameterType="java.util.Map"  resultMap="RM_CatItemPriceCount">
+  	SELECT BEST_PRICE,COUNT(X.ITEM_ID) NO_OF_ITEMS
+	  FROM MF_ITEM_PRICE IP,
+	       (SELECT MAX(I.ITEM_ID) ITEM_ID
+	          FROM MF_ITEM I, MF_COMPANY C, MF_ITEM_CATEGORY IC
+	         WHERE I.LIVE_DATE IS NOT NULL
+	           AND I.LIVE_DATE <![CDATA[<]]> SYSDATE
+	           AND I.COMPANY_ID = C.COMPANY_ID
+	           AND I.ITEM_ID = IC.ITEM_ID
+	           AND IC.NODE_ID = #{catId}
+	           AND I.STATUS = 1
+	         GROUP BY I.DEVICE_DISPLAY_NAME, I.DEVELOPER_NAME, I.COMPANY_ID) X
+	 WHERE X.ITEM_ID = IP.ITEM_ID
+	 AND IP.PRICE_MODEL_ID <![CDATA[<>]]> #{pmId}
+	 GROUP BY BEST_PRICE
+	 ORDER BY BEST_PRICE DESC
+  </select>
+  
+  <select id="selPricePointHeader" resultType="String">
+  	SELECT DISTINCT BEST_PRICE
+	  FROM MF_ITEM_PRICE
+	 WHERE BEST_PRICE <![CDATA[>]]> 0
+	 ORDER BY 1
+  </select>
+  
+  
+  <resultMap id="RM_ItemCatDevice" type="ReportDataDTO">
+  	<result property="deviceType" column="DEVICE_NAME"/>
+  	 <result property="deviceDisplayName" column="DISPLAY_NAME"/>
+     <result property="noOfOrders" column="NO_OF_ITEMS"/>
+  </resultMap>	
+  <select id="selItemCatDevice" resultMap="RM_ItemCatDevice">
+  	SELECT D.DEVICE_NAME, CN.DISPLAY_NAME, COUNT(X.ITEM_ID) NO_OF_ITEMS
+	  FROM PP_CAT_NODE CN,
+	       MF_DEVICE D,
+	       MF_ITEM_CATEGORY IC,
+	       (SELECT MAX(I.ITEM_ID) ITEM_ID
+	          FROM MF_ITEM I
+	         WHERE I.LIVE_DATE IS NOT NULL
+	           AND I.LIVE_DATE <![CDATA[<]]> SYSDATE
+	           AND I.STATUS = 1
+	         GROUP BY I.DEVICE_DISPLAY_NAME, I.DEVELOPER_NAME, I.COMPANY_ID) X,
+	       (SELECT DISTINCT DGM.DEVICE_ID, IDG.ITEM_ID
+	          FROM MF_DEVICE_GROUP_MAP DGM, MF_ITEM_DEVICE_GROUP IDG
+	         WHERE DGM.DEVICE_GROUP_ID = IDG.DEVICE_GROUP_ID) DI
+	 WHERE DI.ITEM_ID = X.ITEM_ID
+	   AND DI.DEVICE_ID = D.DEVICE_ID
+	   AND X.ITEM_ID = IC.ITEM_ID
+	   AND IC.NODE_ID = CN.NODE_ID
+	 GROUP BY D.DEVICE_NAME, CN.DISPLAY_NAME
+	 ORDER BY D.DEVICE_NAME, CN.DISPLAY_NAME
+  </select>
+  
+  
+  
+   <sql id="orderDateClause">
+  	 AND O.ORDER_DATE BETWEEN
+          TO_DATE(TO_CHAR(FROM_TZ(CAST(TO_DATE(#{startDate, typeHandler=com.cellmania.cmreports.db.handlers.DateTypeHandler} ||
+                                         ' 00:00:00',
+                                         'DD-MON-YYYY HH24:MI:SS') AS
+                                 TIMESTAMP),
+                            '${carrier.carrierTimeZone}') AT TIME ZONE
+                    '${serverTimeZone}',
+                    'DD-MON-YYYY hh24:mi:ss'),
+            'DD-MON-YYYY hh24:mi:ss') AND
+    TO_DATE(TO_CHAR(FROM_TZ(CAST(TO_DATE(#{endDate, typeHandler=com.cellmania.cmreports.db.handlers.DateTypeHandler} ||
+                                         ' 23:59:59',
+                                         'DD-MON-YYYY HH24:MI:SS') AS
+                                 TIMESTAMP),
+                            '${carrier.carrierTimeZone}') AT TIME ZONE
+                    '${serverTimeZone}',
+                    'DD-MON-YYYY hh24:mi:ss'),
+            'DD-MON-YYYY hh24:mi:ss')
+  </sql>
+  
+  <sql id="MSRptQuery">
+  	 SELECT FROM_TZ(CAST(O.ORDER_DATE AS TIMESTAMP),
+	                'America/Los_Angeles') AT TIME ZONE 'Asia/Calcutta' ORDER_DATE,
+	        O.COMPANY_NAME,
+	        O.ITEM_ID,
+	        I.NETWORK_AWARE,
+	        O.DEVICE_DISPLAY_NAME ITEM_NAME,
+	        IT.ITEM_TYPE_NAME,
+	        DECODE(C.PUBLISHER_FLAG, 'true', 'direct', 'indirect') DIRECT_FLAG,
+	        O.SELL_PRICE,
+	        (#{carrier.taxRate} * O.SELL_PRICE) NET_SALES,
+	        CASE
+                 WHEN SELL_PRICE = 0 THEN
+                  1
+                 ELSE
+                  0
+               END NUMBER_OF_ZERO,
+               CASE
+                 WHEN SELL_PRICE = 0 AND I.NETWORK_AWARE = 1 THEN
+                  1
+                 ELSE
+                  0
+               END NUMBER_OF_ZERO_NWA,
+		       CASE
+		         WHEN SELL_PRICE = 0 AND I.NETWORK_AWARE = 1 AND
+		              NVL(OD.NUMBER_OF_DOWNLOADS, 0) <![CDATA[>]]> 3 THEN
+		          (1 + (OD.NUMBER_OF_DOWNLOADS - 3)) * 0.1
+		         WHEN SELL_PRICE = 0 AND I.NETWORK_AWARE = 1 AND
+		              NVL(OD.NUMBER_OF_DOWNLOADS, 0) <![CDATA[<=]]> 3 AND
+		              NVL(OD.NUMBER_OF_DOWNLOADS, 0) <![CDATA[>]]> 0 THEN
+		          1 * 0.1
+		         ELSE
+		          0
+		       END NWA_DOWNLOAD_CHARGE,
+               CASE
+                 WHEN SELL_PRICE <![CDATA[<]]> 0 THEN
+                  1
+                 ELSE
+                  0
+               END NUMBER_OF_REFUND,
+               CASE
+                 WHEN SELL_PRICE <![CDATA[>]]> 0 THEN
+                  1
+                 ELSE
+                  0
+               END NUMBER_OF_ORDER,
+	        NVL(S.REVENUE_SHARE2, 0) CS_PCT,
+	        
+	        DECODE ((#{includeCP, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler}),
+	        			1,NVL(S.REVENUE_SHARE3, 0),
+	        			DECODE(C.PUBLISHER_FLAG, 'true',NVL(S.REVENUE_SHARE3, 0),0)) CM_PCT,
+	        			
+	        DECODE ((#{includeCP, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler}),
+	        			1,NVL(S.REVENUE_SHARE, 0),
+	        			DECODE(C.PUBLISHER_FLAG, 'true',NVL(S.REVENUE_SHARE, 0),0)) CP_PCT,
+	        			
+	        (NVL(S.REVENUE_SHARE2, 0) / 100) * (#{carrier.taxRate} * O.SELL_PRICE) CARRIR_SHARE,
+	        
+	         DECODE ((#{includeCP, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler}),
+	        			1,(NVL(S.REVENUE_SHARE3, 0) / 100) * (O.SELL_PRICE * #{carrier.taxRate}),
+	        			DECODE(C.PUBLISHER_FLAG, 
+	        					'true',(NVL(S.REVENUE_SHARE3, 0) / 100) * (O.SELL_PRICE * #{carrier.taxRate})
+	        					,0)) CM_SHARE,
+	        
+	          DECODE ((#{includeCP, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler}),
+	        			1,(NVL(S.REVENUE_SHARE, 0) / 100) * (O.SELL_PRICE * #{carrier.taxRate}),
+	        			DECODE(C.PUBLISHER_FLAG, 
+	        					'true',(NVL(S.REVENUE_SHARE, 0) / 100) * (O.SELL_PRICE * #{carrier.taxRate})
+	        					,0)) CP_SHARE,
+	        
+	        (((NVL(S.REVENUE_SHARE3, 0) / 100) * (#{carrier.taxRate} * O.SELL_PRICE))+ ((NVL(S.REVENUE_SHARE, 0)/ 100) * (#{carrier.taxRate} * O.SELL_PRICE)))  CARRIER_INVOICE
+	 
+	   FROM MF_ORDER O, MF_ITEM_TYPE IT, MF_COMPANY C, MF_SETTLEMENT S, MF_ITEM I,MF_ORDER_DOWNLOAD OD
+	  WHERE O.ORDER_TYPE IS NULL
+	  	AND O.ORDER_ID = OD.ORDER_ID(+)
+	  	<!--  If Y is set then all Free Apps (PM 1005) are excluded -->
+	    <if test="yelement &gt; 0">
+	    	AND O.PRICE_MODEL_ID <![CDATA[<>]]> #{yelement}
+	    </if>
+	    AND O.ITEM_TYPE_ID = IT.ITEM_TYPE_ID
+	    AND O.ITEM_ID = I.ITEM_ID
+	    AND O.COMPANY_ID = C.COMPANY_ID
+	    AND NVL(O.SETTLEMENT_ID, 0) = S.ID(+)
+	   <include refid="orderDateClause"/>
+  </sql>
+  
+  <resultMap id="RM_MonthlySalesReport" type="ReportDataDTO">
+  	 <result property="orderDate" column="ORDER_DATE"/>
+     <result property="companyName" column="COMPANY_NAME"/>
+     <result property="itemId" column="ITEM_ID"/>
+     <result property="networkAware" column="NETWORK_AWARE"/>
+     <result property="directFlag" column="DIRECT_FLAG"/>
+     <result property="itemType" column="ITEM_TYPE_NAME"/>
+     <result property="deviceDisplayName" column="ITEM_NAME"/>
+     <result property="sellPrice" column="SELL_PRICE"/>
+     <result property="netSales" column="NET_SALES"/>
+     <result property="noOfOrders" column="NUMBER_OF_ORDER"/>
+     <result property="noOfRefunds" column="NUMBER_OF_REFUND"/>
+     <result property="noOfZeroOrders" column="NUMBER_OF_ZERO_ORDERS"/>
+     <result property="noOfFreeNWApps" column="FREE_NW_AWARE"/>
+     <result property="zeroPriceSales" column="NWA_DOWNLOAD_CHARGE" />
+     <result property="csPct" column="CS_PCT"/>
+     <result property="cpSharePct" column="CP_PCT"/> 
+     <result property="cellmaniaSharePct" column="CM_PCT"/>
+     
+     <result property="carrierShare" column="CARRIR_SHARE"/>
+     <result property="cellmaniaShare" column="CM_SHARE"/>
+     <result property="cpShare" column="CP_SHARE"/>
+     <result property="carrierInvoice" column="CARRIER_INVOICE"/>  
+        
+  </resultMap>	
+  <select id="selRevShareReportData" parameterType="RequestDTO" resultMap="RM_MonthlySalesReport">
+	  SELECT TO_CHAR(ORDER_DATE, 'MM') ORDER_MONTH,
+	       TO_CHAR(ORDER_DATE, 'MON-YY') ORDER_DATE,
+	       COMPANY_NAME,
+	       ITEM_ID,
+	       NETWORK_AWARE,
+	       ITEM_NAME,
+	       ITEM_TYPE_NAME,
+	       DIRECT_FLAG,
+	       SUM(SELL_PRICE) SELL_PRICE,
+	       SUM(NET_SALES) NET_SALES,
+	       SUM(NUMBER_OF_ORDER) NUMBER_OF_ORDER,
+	       SUM(NUMBER_OF_REFUND) NUMBER_OF_REFUND,
+	       SUM(NUMBER_OF_ZERO) NUMBER_OF_ZERO_ORDERS,
+	       SUM(NUMBER_OF_ZERO_NWA) FREE_NW_AWARE,
+	       SUM(NWA_DOWNLOAD_CHARGE) NWA_DOWNLOAD_CHARGE,
+	       CS_PCT,
+	       CM_PCT,
+	       CP_PCT,
+	       SUM(CARRIR_SHARE) CARRIR_SHARE,
+	       SUM(CM_SHARE) CM_SHARE,
+	       SUM(CP_SHARE) CP_SHARE,
+	       SUM(CARRIER_INVOICE) CARRIER_INVOICE
+	  FROM (<include refid="MSRptQuery"/>)
+	 GROUP BY COMPANY_NAME,
+	          TO_CHAR(ORDER_DATE, 'MM'),
+	          TO_CHAR(ORDER_DATE, 'MON-YY'),
+	          ITEM_ID,
+	          NETWORK_AWARE,
+	          ITEM_NAME,
+	          ITEM_TYPE_NAME,
+	          DIRECT_FLAG,
+	          NUMBER_OF_ORDER,
+	          NUMBER_OF_REFUND,
+	          NUMBER_OF_ZERO,
+	          CS_PCT,
+	          CM_PCT,
+	          CP_PCT
+	 ORDER BY COMPANY_NAME,
+	          ORDER_MONTH,
+	          ORDER_DATE,
+	          ITEM_TYPE_NAME,
+	          ITEM_NAME,
+	          DIRECT_FLAG
+  
+  </select>
+  
+  <resultMap id="RM_MonthlySalesReportGrandTotal" type="ReportDataDTO">
+  	 <result property="itemType" column="ITEM_TYPE_NAME"/>
+     <result property="directFlag" column="DIRECT_FLAG"/>
+     <result property="sellPrice" column="SELL_PRICE"/>
+     <result property="netSales" column="NET_SALES"/>
+     <result property="noOfOrders" column="NUMBER_OF_ORDER"/>
+     <result property="noOfRefunds" column="NUMBER_OF_REFUND"/>
+     <result property="noOfZeroOrders" column="NUMBER_OF_ZERO_ORDERS"/>
+     <result property="noOfFreeNWApps" column="FREE_NW_AWARE"/>
+     <result property="zeroPriceSales" column="NWA_DOWNLOAD_CHARGE" />
+     <result property="carrierShare" column="CARRIR_SHARE"/>
+     <result property="cellmaniaShare" column="CM_SHARE"/>
+     <result property="cpShare" column="CP_SHARE"/>
+     <result property="carrierInvoice" column="CARRIER_INVOICE"/>
+     <result property="csPct" column="CS_PCT"/>
+     <result property="cpSharePct" column="CP_PCT"/> 
+     <result property="cellmaniaSharePct" column="CM_PCT"/>
+  </resultMap>	
+  <select id="selRevShareReportSummaryData" parameterType="RequestDTO" resultMap="RM_MonthlySalesReportGrandTotal">
+  SELECT DIRECT_FLAG,ITEM_TYPE_NAME,
+       SUM(SELL_PRICE) SELL_PRICE,
+       SUM(NET_SALES) NET_SALES,
+       SUM(NUMBER_OF_ORDER) NUMBER_OF_ORDER,
+       SUM(NUMBER_OF_REFUND) NUMBER_OF_REFUND,
+       SUM(NUMBER_OF_ZERO) NUMBER_OF_ZERO_ORDERS,
+       SUM(NUMBER_OF_ZERO_NWA) FREE_NW_AWARE,
+       SUM(NWA_DOWNLOAD_CHARGE) NWA_DOWNLOAD_CHARGE,
+       SUM(CARRIR_SHARE) CARRIR_SHARE,
+       SUM(CM_SHARE) CM_SHARE,
+       SUM(CP_SHARE) CP_SHARE,
+       SUM(CARRIER_INVOICE) CARRIER_INVOICE,
+        CS_PCT,CM_PCT,CP_PCT
+  FROM (<include refid="MSRptQuery"/>)
+    GROUP BY DIRECT_FLAG,
+    		 ITEM_TYPE_NAME,
+    		 NUMBER_OF_ORDER,
+    		 NUMBER_OF_REFUND,
+    		 NUMBER_OF_ZERO,
+    		 NUMBER_OF_ZERO_NWA,
+    		 CS_PCT,
+    		 CM_PCT,
+    		 CP_PCT
+    ORDER BY DIRECT_FLAG,ITEM_TYPE_NAME
+  </select>
+</mapper>

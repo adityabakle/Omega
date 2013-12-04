@@ -1,0 +1,7 @@
+struts.action.extension=do
+#default is xhtml and generates table etc tags when using s:form
+struts.ui.theme=simple
+#Enables debugging (Disabled for production)
+struts.devMode=false
+
+struts.custom.i18n.resources=ApplicationResources

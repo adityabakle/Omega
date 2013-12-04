@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="CarrierMaster">
+ 	<resultMap type="CarrierMasterDTO" id="rmCarrierDetails">
+		<id property="carrierId" javaType="Long" column="CARRIERID"/>
+		<result property="name" javaType="String" column="NAME"/>
+		<result property="displayName" javaType="String" column="DISPLAYNAME"/>
+		<result property="sqlMapFile" javaType="String" column="SQLMAPFILE"/>
+		<result property="tnsFile" javaType="String" column="TNSFILE"/>
+		<result property="sqlMapperNamespace" javaType="String" column="SQLMAPPERNAMESPACE"/>
+		<result property="carrierTimeZone" javaType="String" column="CARRIERTIMEZONE"/>
+		<result property="taxRate" javaType="Double" column="TAXRATE"/>
+		<result property="currencyCode" javaType="String" column="CURRENCYCODE"/>
+		<result property="xlsClassName" javaType="String" column="XLSCLASSNAME"/>
+		<result property="xlsxClassName" javaType="String" column="XLSXCLASSNAME"/>
+		<result property="enabled" column="ENABLED" typeHandler="com.cellmania.cmreports.db.handlers.BooleanTypeHandler"/>
+		<result property="createdDate" javaType="java.util.Date" column="CREATEDDATE"/>
+		<result property="modifiedDate" javaType="java.util.Date" column="MODIFIEDDATE"/>
+		<result property="updatedBy" javaType="Long" column="UPDATEDBY"/>
+		<result property="updatedByName" javaType="String" column="UPDATEDBYNAME"/>
+		<result property="tnsLookup" column="TNSLOOKUP" typeHandler="com.cellmania.cmreports.db.handlers.BooleanTypeHandler"/>
+		<result property="dbTnsName" column="DBTNSNAME" javaType="String"/>
+		<result property="dbServerName" column="DBSERVERNAME" javaType="String"/>
+		<result property="dbPort" column="DBPORT" javaType="Long"/>
+		<result property="dbServiceId" column="DBSERVICEID" javaType="String"/>
+		<result property="dbUserName" column="DBUSERNAME" javaType="String"/>
+		<result property="dbPassword" column="DBPASSWORD" javaType="String"/>
+		<collection property="carrierReportXref" column="CARRIERID" javaType="ArrayList" ofType="CarrierReportXrefDTO" select="getMappedReportIds"/>
+	</resultMap>
+ <select id="getCarrierDetails" parameterType="CarrierParams" resultMap="rmCarrierDetails" flushCache="true">
+ 	SELECT C.CARRIERID, C.NAME, C.DISPLAYNAME,
+	       C.SQLMAPFILE, C.TNSFILE, C.SQLMAPPERNAMESPACE,
+	       C.CARRIERTIMEZONE, C.TAXRATE, C.CURRENCYCODE,
+	       C.XLSCLASSNAME, C.XLSXCLASSNAME, C.ENABLED,
+	       C.CREATEDDATE, C.MODIFIEDDATE, C.UPDATEDBY,C.TNSLOOKUP,
+	       C.DBSERVERNAME,C.DBTNSNAME,C.DBSERVICEID,C.DBPORT, C.DBUSERNAME,C.DBPASSWORD,
+	       UB.NAME UPDATEDBYNAME
+	  FROM CARRIERMASTER C, USERMASTER UB
+ 	<where>
+ 		C.UPDATEDBY = UB.USERID (+)
+ 		<if test="carrierId!=null and carrierId &gt; 0">
+ 			AND C.CARRIERID = #{carrierId, jdbcType=NUMERIC}
+ 		</if>
+ 		<if test="name!=null">
+ 			C.NAME = #{name, jdbcType=VARCHAR}
+ 		</if>
+ 		<if test="enabled!=null">
+ 			AND C.ENABLED = #{enabled, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler}
+ 		</if>
+ 	</where>
+ 	ORDER BY C.DISPLAYNAME
+ </select>
+ 
+ <resultMap type="CarrierMasterDTO" id="rmCarrierLmtDetails">
+		<id property="carrierId" javaType="Long" column="CARRIERID"/>
+		<result property="name" javaType="String" column="NAME"/>
+		<result property="displayName" javaType="String" column="DISPLAYNAME"/>
+		<result property="sqlMapFile" javaType="String" column="SQLMAPFILE"/>
+		<result property="tnsFile" javaType="String" column="TNSFILE"/>
+		<result property="sqlMapperNamespace" javaType="String" column="SQLMAPPERNAMESPACE"/>
+		<result property="carrierTimeZone" javaType="String" column="CARRIERTIMEZONE"/>
+		<result property="taxRate" javaType="Double" column="TAXRATE"/>
+		<result property="currencyCode" javaType="String" column="CURRENCYCODE"/>
+		<result property="xlsClassName" javaType="String" column="XLSCLASSNAME"/>
+		<result property="xlsxClassName" javaType="String" column="XLSXCLASSNAME"/>
+		<result property="enabled" column="ENABLED" typeHandler="com.cellmania.cmreports.db.handlers.BooleanTypeHandler"/>
+		<result property="tnsLookup" column="TNSLOOKUP" typeHandler="com.cellmania.cmreports.db.handlers.BooleanTypeHandler"/>
+		<result property="dbTnsName" column="DBTNSNAME" javaType="String"/>
+		<result property="dbServerName" column="DBSERVERNAME" javaType="String"/>
+		<result property="dbPort" column="DBPORT" javaType="Long"/>
+		<result property="dbServiceId" column="DBSERVICEID" javaType="String"/>
+		<result property="dbUserName" column="DBUSERNAME" javaType="String"/>
+		<result property="dbPassword" column="DBPASSWORD" javaType="String"/>
+</resultMap>
+ <select id="getCarrierDetailsById" parameterType="Long" resultType="CarrierMasterDTO" flushCache="true" resultMap="rmCarrierLmtDetails">
+ 	SELECT C.CARRIERID, C.NAME, C.DISPLAYNAME,
+	       C.SQLMAPFILE, C.TNSFILE, C.SQLMAPPERNAMESPACE,
+	       C.CARRIERTIMEZONE, C.TAXRATE, C.CURRENCYCODE,
+	       C.TNSLOOKUP,C.ENABLED,
+	       C.XLSCLASSNAME, C.XLSXCLASSNAME,
+	       C.DBSERVERNAME,C.DBTNSNAME,C.DBSERVICEID,C.DBPORT, C.DBUSERNAME,C.DBPASSWORD
+	  FROM CARRIERMASTER C
+ 	<where>
+ 		C.CARRIERID = #{carrierId, jdbcType=NUMERIC}
+ 	</where>
+ </select>
+ 
+ <select id="getCarriersForUser" parameterType="CarrierParams" resultType="CarrierMasterDTO" flushCache="true">
+ 	SELECT C.CARRIERID, C.NAME, C.DISPLAYNAME
+	  FROM CARRIERMASTER C, USERCARRIERXREF UCX
+ 	<where>
+ 		UCX.CARRIERID = C.CARRIERID
+ 		AND UCX.USERID = #{userId, jdbcType=NUMERIC}
+ 		AND C.ENABLED = 1
+ 	</where>
+ 	ORDER BY C.DISPLAYNAME
+ </select>
+ 
+ <select id="getMappedReportIds" parameterType="Long" resultType="CarrierReportXrefDTO">
+ 	SELECT CARRIERID, REPORTID 
+ 	  FROM CARRIERREPORTXREF
+ 	 WHERE CARRIERID = #{carrierId, jdbcType=NUMERIC}
+ </select>
+ 
+  <select id="checkDuplicateCarrier" resultType="long" parameterType="CarrierParams">
+ 		SELECT count (1)
+ 		  FROM CARRIERMASTER C
+ 		 <where>
+ 		 	<if test="name != null">
+ 		 		UPPER(C.NAME) = UPPER(#{name, jdbcType=VARCHAR})
+ 		 	</if>
+ 		 	<if test="carrierId != null">
+ 		 		AND C.CARRIERID <![CDATA[<>]]> #{carrierId, jdbcType=NUMERIC}
+ 		 	</if>
+ 		 </where>
+ 	</select>
+ 	
+ <select id="generateCarrierId" resultType="Long" flushCache="true">
+ 	SELECT CARRIERMASTER_PK_SEQ.NEXTVAL FROM DUAL
+ </select>
+ 
+ <insert id="addCarrier" parameterType="CarrierMasterDTO">
+ 	INSERT INTO CARRIERMASTER (CARRIERID, NAME, DISPLAYNAME, SQLMAPFILE, TNSFILE, SQLMAPPERNAMESPACE,
+	       CARRIERTIMEZONE, TAXRATE, CURRENCYCODE, XLSCLASSNAME, ENABLED,TNSLOOKUP,
+	       DBTNSNAME,DBSERVERNAME,DBSERVICEID,DBPORT,DBUSERNAME,DBPASSWORD,
+	       UPDATEDBY) VALUES
+	       (#{carrierId, jdbcType=NUMERIC}, #{name, jdbcType=VARCHAR}, #{displayName, jdbcType=VARCHAR}, #{sqlMapFile, jdbcType=VARCHAR},
+	        #{tnsFile, jdbcType=VARCHAR}, #{sqlMapperNamespace, jdbcType=VARCHAR}, #{carrierTimeZone, jdbcType=VARCHAR},
+	        #{taxRate, jdbcType=NUMERIC}, #{currencyCode, jdbcType=VARCHAR}, #{xlsClassName, jdbcType=VARCHAR},
+	        #{enabled, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler},
+	        #{tnsLookup, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler}, 
+	        #{dbTnsName, jdbcType=VARCHAR},#{dbServerName, jdbcType=VARCHAR},#{dbServiceId, jdbcType=VARCHAR},
+	        #{dbPort, jdbcType=NUMERIC},#{dbUserName, jdbcType=VARCHAR},#{dbPassword, jdbcType=VARCHAR},
+	        #{updatedBy, jdbcType=NUMERIC})
+ </insert>
+ 
+  <update id="updateCarrier" parameterType="CarrierMasterDTO">
+ 	UPDATE CARRIERMASTER SET 
+ 		NAME = #{name, jdbcType=VARCHAR}, 
+ 		DISPLAYNAME =  #{displayName, jdbcType=VARCHAR}, 
+ 		SQLMAPFILE =  #{sqlMapFile, jdbcType=VARCHAR}, 
+ 		TNSFILE = #{tnsFile, jdbcType=VARCHAR}, 
+ 		SQLMAPPERNAMESPACE = #{sqlMapperNamespace, jdbcType=VARCHAR},
+ 		CARRIERTIMEZONE = #{carrierTimeZone, jdbcType=VARCHAR}, 
+ 		TAXRATE = #{taxRate, jdbcType=NUMERIC}, 
+ 		CURRENCYCODE = #{currencyCode, jdbcType=VARCHAR}, 
+ 		XLSCLASSNAME = #{xlsClassName, jdbcType=VARCHAR}, 
+ 		ENABLED = #{enabled, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler},
+ 		TNSLOOKUP = #{tnsLookup, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler},
+ 		DBTNSNAME = #{dbTnsName, jdbcType=VARCHAR},
+ 		DBSERVERNAME = #{dbServerName, jdbcType=VARCHAR},
+ 		DBSERVICEID = #{dbServiceId, jdbcType=VARCHAR},
+	    DBPORT =  #{dbPort, jdbcType=NUMERIC},
+	    DBUSERNAME = #{dbUserName, jdbcType=VARCHAR},
+	    DBPASSWORD = #{dbPassword, jdbcType=VARCHAR},
+	    UPDATEDBY = #{updatedBy, jdbcType=NUMERIC}
+	   WHERE CARRIERID = #{carrierId, jdbcType=NUMERIC}
+ </update>
+ 
+ <insert id="insertCarrierReportMapping" parameterType="CarrierReportXrefDTO">
+ 	INSERT INTO CARRIERREPORTXREF
+ 	VALUES (#{carrierId jdbcType=NUMERIC},#{reportId, jdbcType=NUMERIC})
+ </insert>
+ 
+ 
+ <delete id="deleteCarrierReportMapping" parameterType="Long">
+ 	DELETE FROM CARRIERREPORTXREF WHERE CARRIERID = #{carrierId jdbcType=NUMERIC}
+ </delete>
+ 
+</mapper>

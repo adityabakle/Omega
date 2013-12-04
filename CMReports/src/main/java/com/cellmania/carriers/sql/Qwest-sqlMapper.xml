@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="QwestReports">  
+  
+  <sql id="MSRptQuery">
+  SELECT TO_CHAR(O.ORDER_DATE,'MON-YY') ORDER_DATE,X.COMPANY_NAME,
+         O.ITEM_ID, O.ITEM_NAME,
+         X.SETTLEMENT_NAME,X.PUBLISHER_FLAG,
+         T.ITEM_TYPE_NAME ITEM_TYPE,T.ITEM_TYPE_ID,
+         O.DEVICE_DISPLAY_NAME,
+         O.SELL_PRICE, (O.SELL_PRICE * #{carrier.taxRate}) NET_SALES,
+         NVL(X.REVENUE_SHARE, 0) CP_SHARE_PCT,
+         NVL(X.REVENUE_SHARE4, 0) THIRD_PARTY_RIGHTS_SHARE_PCT,
+         NVL(X.REVENUE_SHARE3, 0) CELLMANIA_SHARE_PCT,
+         NVL(X.REVENUE_SHARE2, 0) CARRIER_SHARE_PCT,
+         (CASE
+           WHEN O.NOTIFY_FLAG = 'revoke' AND
+                O.PARENT_ORDER_ID IS NOT NULL THEN
+            1
+           WHEN SELL_PRICE = 0 THEN
+            -1
+           ELSE
+            0
+         END) REFUND,
+         (NVL(X.REVENUE_SHARE, 0) / 100) * (O.SELL_PRICE * #{carrier.taxRate}) CP_SHARE,
+         (NVL(X.REVENUE_SHARE4, 0) / 100) * (O.SELL_PRICE * #{carrier.taxRate}) THIRD_PARTY_RIGHTS_SHARE,
+         (NVL(X.REVENUE_SHARE3, 0) / 100) * (O.SELL_PRICE * #{carrier.taxRate}) CELLMANIA_SHARE,
+         DECODE(X.PUBLISHER_FLAG,
+                NULL,
+                'indirect',
+                'false',
+                'indirect',
+                'true',
+                'direct',
+                '?') DIRECT_FLAG,
+         DECODE(O.SUBSCRIPTION_FLAG, 0, 'NO', 'YES') SUBSCRIPTION
+    FROM MF_ORDER O,
+         MF_ITEM_TYPE T,
+         (SELECT REVENUE_SHARE,
+                 REVENUE_SHARE2,
+                 REVENUE_SHARE3,
+                 REVENUE_SHARE4,
+                 SETTLEMENT_NAME,
+                 ID SETTLEMENT_ID,
+                 PUBLISHER_FLAG,
+                 COMPANY_NAME,
+                 C.COMPANY_ID
+            FROM MF_SETTLEMENT Q, MF_COMPANY C
+           WHERE Q.COMPANY_ID = C.COMPANY_ID) X
+   WHERE O.COMPANY_ID = X.COMPANY_ID(+)
+     AND O.SETTLEMENT_ID = X.SETTLEMENT_ID(+)
+     <!-- New clause added as per Eric's mail as the Quest do not need this item type in the report. -->
+     AND O.ITEM_TYPE_ID <![CDATA[<>]]> 50
+     AND O.ITEM_TYPE_ID = T.ITEM_TYPE_ID
+     AND O.ORDER_TYPE IS NULL
+     AND O.ORDER_DATE BETWEEN
+         TO_DATE(#{startDate, typeHandler=com.cellmania.cmreports.db.handlers.DateTypeHandler} || ' 00:00:00',
+                 'DD-MON-YYYY HH24:MI:SS')
+     AND TO_DATE(#{endDate, typeHandler=com.cellmania.cmreports.db.handlers.DateTypeHandler} || ' 23:59:59',
+                 'DD-MON-YYYY HH24:MI:SS')
+  </sql>
+  
+  <sql id="MSQuery1">
+  SELECT  ORDER_DATE,COMPANY_NAME,
+          ITEM_ID,ITEM_NAME,
+          SETTLEMENT_NAME,DIRECT_FLAG,
+          ITEM_TYPE, ITEM_TYPE_ID,DEVICE_DISPLAY_NAME,
+          REFUND, SUM(SELL_PRICE) SELL_PRICE,
+          SUM(NET_SALES) NET_SALES,
+          SUM(NET_SALES) * 0.0625 CELLMANIA_REV_SHARE,
+          DECODE(DIRECT_FLAG, 'direct', SUM(NET_SALES) * 0.025, 0) SETTLEMENT_FEE,
+          DECODE(DIRECT_FLAG, 'direct', SUM(NET_SALES) * 0.01, 0) TESTING_FEE,
+          SUM(DECODE(REFUND, -1, 1, 0)) * 0.05 ZERO_PRICE_SALES,
+          DECODE(DIRECT_FLAG,
+                 'indirect',
+                 DECODE(#{includeCP, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler}, 1,SUM(CP_SHARE), 0), SUM(CP_SHARE)) CP_SHARE, 
+          SUM(THIRD_PARTY_RIGHTS_SHARE) THIRD_PARTY_RIGHTS_SHARE,
+          SUM(CELLMANIA_SHARE) CELLMANIA_SHARE,
+          SUM(DECODE(REFUND, 0, 1, 0)) NUMBER_OF_ORDERS,
+          SUM(DECODE(REFUND, 1, 1, 0)) NUMBER_OF_REFUNDS,
+          SUM(DECODE(REFUND, -1, 1, 0)) NUMBER_OF_ZERO_ORDERS,
+          DECODE(DIRECT_FLAG,
+                 'direct',
+                 SUM(NET_SALES) -
+                 DECODE(DIRECT_FLAG,
+                        'direct',
+                        SUM(CELLMANIA_SHARE),
+                        'indirect',
+                        SUM(CP_SHARE) + SUM(THIRD_PARTY_RIGHTS_SHARE) +
+                        SUM(CELLMANIA_SHARE)) - SUM(CP_SHARE) -
+                 SUM(THIRD_PARTY_RIGHTS_SHARE),
+                 'indirect',
+                 SUM(NET_SALES) -
+                 DECODE(DIRECT_FLAG,
+                        'direct',
+                        SUM(CELLMANIA_SHARE),
+                        'indirect',
+                        SUM(CP_SHARE) + SUM(THIRD_PARTY_RIGHTS_SHARE) +
+                        SUM(CELLMANIA_SHARE))) CARRIER_SHARE,
+         CP_SHARE_PCT CP_PCT, CELLMANIA_SHARE_PCT CM_PCT, CARRIER_SHARE_PCT CS_PCT
+   FROM (<include refid="MSRptQuery"/> )
+   GROUP BY COMPANY_NAME,ORDER_DATE,
+            ITEM_ID,ITEM_NAME,
+            SETTLEMENT_NAME,
+            DIRECT_FLAG, ITEM_TYPE,ITEM_TYPE_ID,
+            DEVICE_DISPLAY_NAME,
+            REFUND,CP_SHARE_PCT, CELLMANIA_SHARE_PCT, CARRIER_SHARE_PCT
+  </sql>
+  <resultMap id="RM_MonthlySalesReport" type="ReportDataDTO">
+  	 <result property="orderDate" column="ORDER_DATE"/>
+     <result property="companyName" column="COMPANY_NAME"/>
+     <result property="itemId" column="ITEM_ID"/>
+     <result property="itemName" column="ITEM_NAME"/>
+     <result property="itemType" column="ITEM_TYPE"/>
+     <result property="itemTypeId" column="ITEM_TYPE_ID"/>
+     <result property="settlementName" column="SETTLEMENT_NAME"/>
+     <result property="directFlag" column="DIRECT_FLAG"/>
+     <result property="deviceDisplayName" column="DEVICE_DISPLAY_NAME"/>
+     <result property="sellPrice" column="SELL_PRICE"/>
+     <result property="noOfOrders" column="NUMBER_OF_ORDERS"/>
+     <result property="noOfRefunds" column="NUMBER_OF_REFUNDS"/>
+     <result property="noOfZeroOrders" column="NUMBER_OF_ZERO_ORDERS"/>
+     <result property="netSales" column="NET_SALES"/>
+     <result property="cellmaniaShare" column="CELLMANIA_REV_SHARE"/>
+     <result property="settlementRevShare" column="SETTLEMENT_FEE"/>
+     <result property="testingRevShare" column="TESTING_FEE"/>
+     <result property="salesAdjust" column="ZERO_PRICE_SALES"/>
+     <result property="cpShare" column="CP_SHARE"/>
+     <result property="thirdParty" column="THIRD_PARTY_RIGHTS_SHARE"/>
+     <result property="carrierShare" column="CARRIER_SHARE"/>
+     <result property="carrierInvoice" column="CARRIER_INVOICE"/>
+     <result property="csPct" column="CS_PCT"/>
+     <result property="cpSharePct" column="CP_PCT"/>
+     <result property="cellmaniaSharePct" column="CM_PCT"/>
+  </resultMap>	
+  <select id="selRevShareReportData" parameterType="RequestDTO" resultMap="RM_MonthlySalesReport">
+  	SELECT ORDER_DATE,COMPANY_NAME,
+       ITEM_ID,ITEM_NAME,ITEM_TYPE_ID,
+       SETTLEMENT_NAME,DIRECT_FLAG,
+       ITEM_TYPE,DEVICE_DISPLAY_NAME,
+       SELL_PRICE,NUMBER_OF_ORDERS,
+       NUMBER_OF_REFUNDS,
+       NUMBER_OF_ZERO_ORDERS,
+       NET_SALES,
+       CELLMANIA_REV_SHARE,
+       SETTLEMENT_FEE,
+       TESTING_FEE,
+       ZERO_PRICE_SALES,
+       CP_SHARE,THIRD_PARTY_RIGHTS_SHARE,
+       (  NET_SALES 
+        + CELLMANIA_REV_SHARE 
+        + SETTLEMENT_FEE 
+        + TESTING_FEE 
+        + ZERO_PRICE_SALES 
+        - CARRIER_SHARE 
+       ) CARRIER_INVOICE,
+       CARRIER_SHARE,
+       CS_PCT,
+       DECODE(DIRECT_FLAG,
+              'indirect',
+              DECODE(#{includeCP, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler}, 1, CP_PCT, 0),
+              CP_PCT) CP_PCT,
+       DECODE(DIRECT_FLAG,
+              'indirect',
+              DECODE(#{includeCP, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler}, 1, CM_PCT, 0),
+              CM_PCT) CM_PCT
+  FROM ( <include refid="MSQuery1"/> ) 
+  ORDER BY COMPANY_NAME,ORDER_DATE,
+          SETTLEMENT_NAME,
+          ITEM_ID, ITEM_NAME,
+          DIRECT_FLAG,ITEM_TYPE,
+          DEVICE_DISPLAY_NAME,
+          REFUND
+  </select>
+  <resultMap id="RM_MonthlySalesReportGrandTotal" type="ReportDataDTO">
+     <result property="itemType" column="ITEM_TYPE"/>
+     <result property="sellPrice" column="SALES"/>
+     <result property="carrierShare" column="CARRIER_SHARE"/>
+     <result property="cpShare" column="MACROVISION_SHARE"/>
+     <result property="cellmaniaShare" column="CELLMANIA_SHARE"/>
+     <result property="platformRevShare" column="PLATFORM_SHARE"/>
+     <result property="csPct" column="GBS"/>
+  </resultMap>	
+  <select id="selRevShareReportSummaryData" parameterType="RequestDTO" resultMap="RM_MonthlySalesReportGrandTotal">
+	  	SELECT ITEM_TYPE,
+	  		   SALES,
+	  		   CARRIER_SHARE,
+	  		   MACROVISION_SHARE,
+	  		   DECODE(DIRECT_FLAG,
+              'indirect',
+              DECODE(#{includeCP, typeHandler=com.cellmania.cmreports.db.handlers.BooleanTypeHandler}, 1, CELLMANIA_SHARE, 0),
+              CELLMANIA_SHARE) CELLMANIA_SHARE,
+	  		   PLATFORM_SHARE,
+	  		   GBS
+	  	 FROM (  
+	  	SELECT MAX(T.ITEM_TYPE_NAME) ITEM_TYPE, 
+	  	DECODE(C.PUBLISHER_FLAG,NULL,'indirect','false','indirect','true','direct','?') DIRECT_FLAG,
+	       SUM(O.SELL_PRICE) SALES,
+	       ROUND(SUM(0.2375 * O.SELL_PRICE * #{carrier.taxRate}), 2) CARRIER_SHARE,
+	       ROUND(SUM(0.6 * O.SELL_PRICE * #{carrier.taxRate}), 2) +
+	       ROUND(SUM(NVL(I.FILE_SIZE,0)) / 1024 / 1024 / 1024, 2) MACROVISION_SHARE,
+	       ROUND(SUM(0.1625 * O.SELL_PRICE * #{carrier.taxRate}), 2) -
+	       ROUND(SUM(NVL(I.FILE_SIZE,0)) / 1024 / 1024 / 1024, 2) CELLMANIA_SHARE,
+	       ROUND(SUM(0.0625 * O.SELL_PRICE * #{carrier.taxRate}), 2) PLATFORM_SHARE,
+	       ROUND(SUM(NVL(I.FILE_SIZE,0)) / 1024 / 1024 / 1024, 2) GBS
+	  FROM MF_ORDER O, MF_ITEM I, MF_ITEM_TYPE T, MF_COMPANY C
+	 WHERE O.ORDER_TYPE IS NULL
+	   AND O.COMPANY_ID = C.COMPANY_ID(+)
+	   AND O.ORDER_DATE BETWEEN
+         TO_DATE(#{startDate, typeHandler=com.cellmania.cmreports.db.handlers.DateTypeHandler} || ' 00:00:00',
+                 'DD-MON-YYYY HH24:MI:SS')
+     AND TO_DATE(#{endDate, typeHandler=com.cellmania.cmreports.db.handlers.DateTypeHandler} || ' 23:59:59',
+                 'DD-MON-YYYY HH24:MI:SS')
+	   AND I.ITEM_ID = O.ITEM_ID
+	   AND I.ITEM_TYPE_ID = T.ITEM_TYPE_ID
+	   AND O.ITEM_TYPE_ID = 10
+	   GROUP BY  DECODE(C.PUBLISHER_FLAG,NULL,'indirect','false','indirect','true','direct','?')
+	)
+  </select>
+  
+  <resultMap id="RM_CCReport" type="ReportDataDTO">
+  	 <result property="orderDate" column="ORDER_DATE"/>
+  	 <result property="ptn" column="SUBSCRIBER_ID"/>
+  	 <result property="itemName" column="ITEM_NAME"/>
+  	 <result property="appTypeId" column="ORDER_ID"/>
+  	 <result property="qpassProductId" column="BILLING_TRANS_ID"/>
+  	 <result property="settlementName" column="SID"/>
+  	 <result property="sellPrice" column="PRICE"/>
+     <result property="netSales" column="NET_SALES"/>
+     <result property="noOfOrders" column="NUMBER_OF_ORDERS"/>
+     <result property="testingRevShare" column="TOTAL_TAX"/>
+     <result property="salesAdjust" column="SHIPPINGFEE"/>
+     <result property="totalSellPrice" column="TOTAL"/>
+     <result property="settlementRevShare" column="ROYALTY"/>
+     <result property="directFlag" column="CC"/>
+     <result property="thirdParty" column="CC_FEES"/>
+     <result property="cellmaniaShare" column="CELLMANIA_SHARE"/>
+     <result property="carrierShare" column="QWEST_SHARE"/>
+  </resultMap>	
+  <select id="selCreditCardReportData" parameterType="RequestDTO" resultMap="RM_CCReport">
+	SELECT ORDER_DATE,
+		   SUBSCRIBER_ID,
+		   ORDER_ID,
+		   BILLING_TRANS_ID,
+	       ITEM_NAME,
+	       SID,
+	       PRICE,
+	       SUM(NET_SALES) NET_SALES,
+	       COUNT(ITEM_NAME) NUMBER_OF_ORDERS,
+	       SUM(TOTAL_TAX) TOTAL_TAX,
+	       SUM(SHIPPINGFEE) SHIPPINGFEE,
+	       SUM(TOTAL) TOTAL,
+	       SUM(ROYALTY) ROYALTY,
+	       CC,
+	       SUM(CC_FEES) CC_FEES,
+	       SUM(DECODE(CC, 'No', ROYALTY, ROYALTY + CC_FEES)) CELLMANIA_SHARE,
+	       SUM(TOTAL - (DECODE(CC, 'No', ROYALTY, ROYALTY + CC_FEES))) QWEST_SHARE           
+	  FROM (SELECT TO_CHAR(O.ORDER_DATE,'DD-MON-YY') ORDER_DATE,
+	  			   O.SUBSCRIBER_ID,
+	  			   O.ORDER_ID,
+	  			   O.BILLING_TRANS_ID,
+	               O.DEVICE_DISPLAY_NAME ITEM_NAME,
+	               S.ID SID,
+	               
+	               CASE WHEN O.SELL_PRICE <![CDATA[<]]> 0 THEN  
+	               (O.SELL_PRICE + 13)
+	               ELSE 
+	               (O.SELL_PRICE - 13)
+	               END PRICE,
+	               
+	               CASE WHEN O.SELL_PRICE <![CDATA[<]]> 0 THEN  
+	               (O.SELL_PRICE + 13)
+	               ELSE 
+	               (O.SELL_PRICE - 13)
+	               END NET_SALES,
+	               
+	               O.TOTAL_TAX,
+	               CASE
+	                 WHEN SELL_PRICE <![CDATA[<]]> 0 THEN
+	                  -13
+	                 ELSE
+	                  13
+	               END SHIPPINGFEE,
+	               (O.SELL_PRICE + O.TOTAL_TAX) TOTAL,
+	               CASE WHEN SELL_PRICE <![CDATA[<]]> 0 THEN
+	                    -1 * S.PRICE 
+	               ELSE 
+	                    S.PRICE
+	               END  ROYALTY,
+	               DECODE(NVL(OB.ORDER_ID, 0),
+	                      0,
+	                      DECODE(NVL(OBP.ORDER_ID, 0), 0, 'No', 'Yes'),
+	                      'Yes') CC,
+	               DECODE(NVL(OB.ORDER_ID, NVL(OBP.ORDER_ID, 0)),
+	                      0,
+	                      0,
+	                      (CASE WHEN SELL_PRICE <![CDATA[<]]> 0 THEN 
+		                      -0.5 
+		                   ELSE 
+		                      0.5 
+		                   END + (S.REVENUE_SHARE / 100 * (O.SELL_PRICE + O.TOTAL_TAX)))) CC_FEES
+	          FROM MF_ORDER O, MF_SETTLEMENT S, MF_ORDER_BILLING OB,MF_ORDER_BILLING OBP
+	         WHERE O.ITEM_TYPE_ID = 50
+	           AND O.SETTLEMENT_ID = S.ID
+	           AND O.ORDER_ID = OB.ORDER_ID(+)
+	           AND O.PARENT_ORDER_ID = OBP.ORDER_ID(+)
+	           AND O.ORDER_TYPE IS NULL
+			   AND O.ORDER_DATE BETWEEN
+		         TO_DATE(#{startDate, typeHandler=com.cellmania.cmreports.db.handlers.DateTypeHandler} || ' 00:00:00',
+		                 'DD-MON-YYYY HH24:MI:SS')
+		       	 AND TO_DATE(#{endDate, typeHandler=com.cellmania.cmreports.db.handlers.DateTypeHandler} || ' 23:59:59',
+		                 'DD-MON-YYYY HH24:MI:SS')
+	           )
+	 GROUP BY SUBSCRIBER_ID,ORDER_ID, BILLING_TRANS_ID,ITEM_NAME, PRICE, CC, sid, ORDER_DATE
+	 ORDER BY ORDER_ID, CC, ITEM_NAME
+  </select>
+</mapper>
