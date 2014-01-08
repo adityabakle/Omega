@@ -15,12 +15,13 @@ public class TestObjectConverter {
 	 */
 	public static void main(String[] args) {
 		TestDTO tst = new TestDTO();
-		tst.map.put("ONE", 1);
-		tst.map.put("TWO", 2);
+		tst.map.put("ONE", new TestDTO2());
+		//tst.map.put("TWO", 2);
+		tst.names.add(new TestDTO2());
 		
-		System.out.println("Raw Object value :"+tst.toString());
+		//System.out.println("Raw Object value :"+tst.toString());
 		
-		System.out.println("Readable Object value :"+tst.toString(true));
+		System.out.println(tst);
 
 	}
 }
@@ -30,10 +31,17 @@ class TestDTO{
 	long l = 314;
 	double d = 3.14;
 	Long[] lst = {1l,2l,3l};
-	List<String> names = new ArrayList<String>(4);
-	Map<String, Integer> map = new HashMap<String, Integer>();
+	List<TestDTO2> names = new ArrayList<TestDTO2>(4);
+	Map<String, TestDTO2> map = new HashMap<String, TestDTO2>();
 	
-	public String toString(boolean readable){
+	public String toString(){
 		return ObjectConverter.convertToString(this);
 	}
+}
+class TestDTO2{
+    String name2 = "Omega 2";
+    String value = "XXX";
+    public String toString(){
+        return ObjectConverter.convertToString(this);
+    }
 }
