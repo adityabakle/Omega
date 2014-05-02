@@ -1,0 +1,25 @@
+{
+  "name": "SolrServiceClient",
+  "version": "0.0.1",
+  "description": "Solr Service Client using Hapi",
+  "main": "index.js",
+  "dependencies": {
+    "hapi": "~2.1.1",
+    "solr-client": "~0.2.8",
+    "twit": "~1.1.12"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:adityabakle/Omega.git"
+  },
+  "author": "abakle",
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/adityabakle/Omega/issues"
+  },
+  "homepage": "https://github.com/adityabakle/Omega"
+}
